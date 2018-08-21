@@ -40,7 +40,30 @@ $ gem install rails-keyserver
 
 == Contributing
 
-Contribution directions go here.
+First, thank you for contributing! We love pull requests from everyone.
+By participating in this project, you hereby grant
+https://www.ribose.com[Ribose Inc.] the right to grant or transfer an
+unlimited number of non exclusive licenses or sub-licenses to third
+parties, under the copyright covering the contribution to use the
+contribution by all means.
+
+Here are a few technical guidelines to follow:
+
+1.  Open an https://github.com/riboseinc/rails-keyserver/issues[issue] to discuss
+    a new feature.
+2.  Write tests to support your new feature.
+3.  Make sure the entire test suite passes locally and on CI.
+4.  Open a Pull Request.
+5.  After receiving feedback, perform
+    https://help.github.com/articles/about-git-rebase/[an interactive rebase]
+    on your branch, in order to create a series of cohesive commits with
+    descriptive messages.
+6.  Party!
+
+== Credits
+
+This gem is developed, maintained and funded by
+https://www.ribose.com[Ribose Inc.]
 
 == License
 
