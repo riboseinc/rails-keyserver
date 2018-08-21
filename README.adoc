@@ -1,0 +1,44 @@
+Rails::Keyserver
+----------------
+
+Short description and motivation.
+
+Usage
+~~~~~
+
+How to use my plugin.
+
+Installation
+~~~~~~~~~~~~
+
+Add this line to your application’s Gemfile:
+
+[source,ruby]
+----
+gem 'rails-keyserver'
+----
+
+And then execute:
+
+[source,bash]
+----
+$ bundle
+----
+
+Or install it yourself as:
+
+[source,bash]
+----
+$ gem install rails-keyserver
+----
+
+Contributing
+~~~~~~~~~~~~
+
+Contribution directions go here.
+
+License
+~~~~~~~
+
+The gem is available as open source under the terms of the
+http://opensource.org/licenses/MIT[MIT License].
