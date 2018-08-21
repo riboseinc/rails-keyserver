@@ -1,5 +1,8 @@
 = Rails::Keyserver
 
+image:https://img.shields.io/travis/riboseinc/rails-keyserver/master.svg["Build Status", link="https://travis-ci.org/riboseinc/rails-keyserver"]
+image:https://codecov.io/github/riboseinc/rails-keyserver/coverage.svg["Code Coverage", link="https://codecov.io/github/riboseinc/rails-keyserver?branch=master"]
+
 Short description and motivation.
 
 == Usage
@@ -17,14 +20,14 @@ gem 'rails-keyserver'
 
 And then execute:
 
-[source,bash]
+[source,console]
 ----
 $ bundle
 ----
 
 Or install it yourself as:
 
-[source,bash]
+[source,console]
 ----
 $ gem install rails-keyserver
 ----
