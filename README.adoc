@@ -1,7 +1,13 @@
 = Rails::Keyserver
 
-image:https://img.shields.io/travis/riboseinc/rails-keyserver/master.svg["Build Status", link="https://travis-ci.org/riboseinc/rails-keyserver"]
-image:https://codecov.io/github/riboseinc/rails-keyserver/coverage.svg["Code Coverage", link="https://codecov.io/github/riboseinc/rails-keyserver?branch=master"]
+image:https://img.shields.io/gem/v/rails-keyserver.svg[
+	Gem Version, link="https://rubygems.org/gems/rails-keyserver"]
+image:https://img.shields.io/travis/riboseinc/rails-keyserver/master.svg[
+	Build Status, link="https://travis-ci.org/riboseinc/rails-keyserver/branches"]
+image:https://img.shields.io/codecov/c/github/riboseinc/rails-keyserver.svg[
+	Test Coverage, link="https://codecov.io/gh/riboseinc/rails-keyserver"]
+image:https://img.shields.io/codeclimate/maintainability/riboseinc/rails-keyserver.svg[
+	"Code Climate", link="https://codeclimate.com/github/riboseinc/rails-keyserver"]
 
 Short description and motivation.
 
