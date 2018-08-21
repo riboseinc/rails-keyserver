@@ -9,7 +9,7 @@ image:https://img.shields.io/codecov/c/github/riboseinc/rails-keyserver.svg[
 image:https://img.shields.io/codeclimate/maintainability/riboseinc/rails-keyserver.svg[
 	"Code Climate", link="https://codeclimate.com/github/riboseinc/rails-keyserver"]
 
-Short description and motivation.
+A generic Rails engine for serving most kinds of keys.
 
 == Usage
 
