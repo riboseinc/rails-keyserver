@@ -1,0 +1,17 @@
+dist: trusty
+sudo: false
+language: ruby
+
+rvm:
+  - 2.5.1
+  - 2.4.3
+  - 2.3.4
+
+branches:
+  only:
+    - master
+
+env:
+
+before_install:
+  - gem install bundler -v 1.16.3
