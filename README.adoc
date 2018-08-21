@@ -1,15 +1,12 @@
-Rails::Keyserver
-----------------
+= Rails::Keyserver
 
 Short description and motivation.
 
-Usage
-~~~~~
+== Usage
 
 How to use my plugin.
 
-Installation
-~~~~~~~~~~~~
+== Installation
 
 Add this line to your application’s Gemfile:
 
@@ -32,13 +29,11 @@ Or install it yourself as:
 $ gem install rails-keyserver
 ----
 
-Contributing
-~~~~~~~~~~~~
+== Contributing
 
 Contribution directions go here.
 
-License
-~~~~~~~
+== License
 
 The gem is available as open source under the terms of the
 http://opensource.org/licenses/MIT[MIT License].
