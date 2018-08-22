@@ -5,6 +5,11 @@ test/dummy/db/*.sqlite3-journal
 test/dummy/log/*.log
 test/dummy/tmp/
 
+spec/test_app/db/*.sqlite3
+spec/test_app/db/*.sqlite3-journal
+spec/test_app/log/*.log
+spec/test_app/tmp/
+
 # Created by https://www.gitignore.io/api/vim,osx,ruby,rails,linux,emacs,windows,textmate,sublimetext,visualstudiocode
 
 ### Emacs ###
