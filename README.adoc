@@ -38,6 +38,85 @@ Or install it yourself as:
 $ gem install rails-keyserver
 ----
 
+== Routes
+
+The following is a sample of what we would like to achieve in terms of API
+endpoints:
+
+[source]
+----
+# GET JSON 
+# /security/pgp_keys?date_from=X&date_to=Y&purpose=mail&sort_by=activation_date&order=desc
+[
+  {
+    public: '===== BEGIN PGP BLOCK ==========.....',
+    key_id: 0x346cb447
+    key_type: rsa
+    expires: '2055/12/12 11:23:45Z+08:00'
+    key_size: 4096/4096
+    fingerprint: 72e5 f8ae da12 7b85 fadb 25a5 83a3 ef8c 346c b447
+    userid: apple product security
+    activation_date: '2055/12/12 11:23:45Z+08:00',
+  }
+]
+
+# GET JSON /security/pgp_key&active=1
+{
+  public: '===== BEGIN PGP BLOCK ==========.....',
+  key_id: 0x346cb446
+  key_type: rsa
+  expires: '2055/12/12 11:23:45Z+08:00'
+  key_size: 4096/4096
+  fingerprint: 72e5 f8ae da12 7b85 fadb 25a5 83a3 ef8c 346c b447
+  userid: apple product security
+  activation_date: '2055/12/12 11:23:45Z+08:00',
+}
+
+# GET JSON /security/pgp_keys
+[
+  {
+    public: '===== BEGIN PGP BLOCK ==========.....',
+    key_id: 0x346cb446
+    key_type: rsa
+    expires: '2055/12/12 11:23:45Z+08:00'
+    key_size: 4096/4096
+    fingerprint: 72e5 f8ae da12 7b85 fadb 25a5 83a3 ef8c 346c b447
+    userid: apple product security
+    activation_date: '2055/12/12 11:23:45Z+08:00',
+  }
+]
+
+# rails users: public PGP
+# DELETE  JSON /settings/pgp_key
+# POST  PUT  GET JSON /settings/pgp_key
+200:
+{
+  id: 'slfsjdfdklsj',
+  public: '===== BEGIN PGP BLOCK ==========.....',
+  key_id: 0x346cb446
+  key_type: rsa
+  expires: '2055/12/12 11:23:45Z+08:00'
+  key_size: 4096/4096
+  fingerprint: 72e5 f8ae da12 7b85 fadb 25a5 83a3 ef8c 346c b447
+  userid: apple product security
+  created_at: '2055/12/12 11:23:45Z+08:00',
+}
+
+422:
+{
+  errors: {
+    format: 'invalid'
+  }
+}
+
+403:
+{
+  errors: {
+    permission: 'denied'
+  }
+}
+----
+
 == Contributing
 
 First, thank you for contributing! We love pull requests from everyone.
