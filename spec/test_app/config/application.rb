@@ -14,7 +14,10 @@ Bundler.require(*Rails.groups)
 require "rails/keyserver"
 
 # For creating differently-named database for different environments!
-ENV["DATABASE_URL"] = ENV["DATABASE_URL"].gsub(/placeholder_db/, "keyserver_#{Rails.env}")
+if ENV["DATABASE_URL"].present?
+  ENV["DATABASE_URL"] =
+    ENV["DATABASE_URL"].gsub(/placeholder_db/, "keyserver_#{Rails.env}")
+end
 
 module TestApp
   class Application < Rails::Application
