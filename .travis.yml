@@ -2,6 +2,9 @@ dist: trusty
 sudo: false
 language: ruby
 
+services:
+  - mysql
+
 rvm:
   - 2.5.1
   - 2.4.3
@@ -13,6 +16,7 @@ branches:
 
 env:
   global:
+    - DATABASE_URL=mysql://travis@127.0.0.1/keyserver_test
     - LOCAL_BUILDS="$HOME/local-builds"
     - BOTAN_INSTALL="${LOCAL_BUILDS}/botan-install"
     - CMOCKA_INSTALL="${LOCAL_BUILDS}/cmocka-install"
@@ -33,4 +37,5 @@ cache:
 
 before_install:
   - gem install bundler -v 1.16.3
+  - mysql -e 'CREATE DATABASE keyserver_test;'
   - ./ci/install.sh
