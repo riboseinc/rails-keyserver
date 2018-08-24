@@ -16,7 +16,7 @@ branches:
 
 env:
   global:
-    - DATABASE_URL=mysql://travis@127.0.0.1/keyserver_test
+    - DATABASE_URL=mysql2://travis@127.0.0.1/keyserver_test
     - LOCAL_BUILDS="$HOME/local-builds"
     - BOTAN_INSTALL="${LOCAL_BUILDS}/botan-install"
     - CMOCKA_INSTALL="${LOCAL_BUILDS}/cmocka-install"
