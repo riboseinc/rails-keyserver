@@ -218,7 +218,7 @@ module Rails::Keyserver::Api::V1
 
         expected_attributes.each do |attr|
           it "contains `#{attr}'" do
-            expect(json[attr].to_s).to_not be_blank
+            expect(json.keys).to include attr
           end
         end
 
@@ -617,10 +617,6 @@ module Rails::Keyserver::Api::V1
           expected_attributes.each do |attr|
             it "contains '#{attr}'" do
               expect(json.first).to include attr
-            end
-
-            it "'#{attr}' is not blank" do
-              expect(json.first[attr].to_s).to_not be_blank
             end
 
             it "contains nothing else" do

@@ -546,8 +546,21 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   end
 
   describe "#expiry_date" do
-    it "is not blank" do
-      expect(key.expiry_date).to_not be_blank
+    it "is nil if it does not expire" do
+      expect(key.expiry_date).to be_nil
+    end
+
+    context "when key expires" do
+      before do
+        allow(key).to receive(:expires?).and_return(true)
+        allow(key).to receive(:metadata).and_return(
+          key.metadata.merge("expiration time" => 123456),
+        )
+      end
+
+      it "is not blank" do
+        expect(key.expiry_date).to_not be_blank
+      end
     end
   end
 
