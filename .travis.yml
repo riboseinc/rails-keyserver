@@ -2,6 +2,9 @@ dist: trusty
 sudo: false
 language: ruby
 
+services:
+  - mysql
+
 rvm:
   - 2.5.1
   - 2.4.3
@@ -12,6 +15,27 @@ branches:
     - master
 
 env:
+  global:
+    - DATABASE_URL=mysql2://travis@127.0.0.1/keyserver_test
+    - LOCAL_BUILDS="$HOME/local-builds"
+    - BOTAN_INSTALL="${LOCAL_BUILDS}/botan-install"
+    - CMOCKA_INSTALL="${LOCAL_BUILDS}/cmocka-install"
+    - JSONC_INSTALL="${LOCAL_BUILDS}/jsonc-install"
+    - RNP_INSTALL="${LOCAL_BUILDS}/rnp-install"
+    - LD_LIBRARY_PATH="${BOTAN_INSTALL}/lib:${CMOCKA_INSTALL}/lib:${JSONC_INSTALL}/lib:${RNP_INSTALL}/lib"
+  matrix:
+    - RNP_VERSION=master
+    - RNP_VERSION=v0.9.1
+
+cache:
+  bundler: true
+  directories:
+    - "$BOTAN_INSTALL"
+    - "$CMOCKA_INSTALL"
+    - "$JSONC_INSTALL"
+    - "$RNP_INSTALL"
 
 before_install:
   - gem install bundler -v 1.16.3
+  - mysql -e 'CREATE DATABASE keyserver_test;'
+  - ./ci/install.sh
