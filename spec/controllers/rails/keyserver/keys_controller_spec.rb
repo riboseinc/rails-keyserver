@@ -140,7 +140,7 @@ module Rails::Keyserver::Api::V1
           context "for an expired key" do
             let(:expired_key_path_1) do
               File.join(
-                Gem::Specification.find_by(name: "rails-keyserver").full_gem_path,
+                Gem::Specification.find_by_name("rails-keyserver").full_gem_path,
                 "spec/data/gpg/expired.pub",
               )
             end
