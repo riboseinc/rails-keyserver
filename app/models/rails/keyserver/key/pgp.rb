@@ -25,25 +25,14 @@ module Rails
           )
         end
 
-        def derive_metadata_if_empty
-          # jsons usually has 2 items. Which one to use?
-          # Match keyid? fingerprint? grip? TODO: match by grip
-          # TODO: or, use the one with nil primary key grip?
-          # or. just pick one, doesn't matter???
-          if metadata.empty?
-            jsons = derive_rnp_jsons
-            primary_jsons = jsons.select { |j| j["primary key grip"].nil? }
-            primary_secret_json = primary_jsons.detect { |j| j["secret key"]["present"] }
-            primary_public_json = primary_jsons.detect { |j| j["public key"]["present"] }
+        def to_gpgkey
+          # self.class.gpgkey_from_key_string(self.public)
+          @to_gpgkey ||= self.class.gpgkey_from_key_string(private || public).first
+        end
 
-            if primary_secret_json
-              json = primary_secret_json
-              if primary_public_json
-                json["public key"] = primary_public_json["public key"]
-              end
-            else
-              json = primary_public_json
-            end
+        def derive_metadata_if_empty
+          if metadata.empty?
+            json = to_gpgkey.as_json
 
             update_column(:metadata, json)
           end
@@ -53,18 +42,6 @@ module Rails
           super
           derive_metadata_if_empty
           update_column(:expiration_date, expiry_date)
-        end
-
-        def save_primary_key_grip
-          super
-          derive_metadata_if_empty
-          update_column(:primary_key_grip, metadata["primary key grip"])
-        end
-
-        def save_grip
-          super
-          derive_metadata_if_empty
-          update_column(:grip, metadata["grip"])
         end
 
         def save_fingerprint
@@ -83,48 +60,53 @@ module Rails
         # end
 
         def key_id
-          metadata["keyid"]
+          metadata["subkeys"][0]["keyid"]
         end
 
         def key_type
-          metadata["type"]
+          GPGME.gpgme_pubkey_algo_name metadata["subkeys"][0]["pubkey_algo"]
         end
 
         def generation_date
-          Time.at(metadata["creation time"])
+          Time.at(metadata["subkeys"][0]["timestamp"])
         end
 
         def expiry_date
-          Time.at(metadata["creation time"] + metadata["expiration"]) if expires?
+          # TODO: verify
+          if expires?
+            read_attribute(:expiration_date) || Time.at(to_gpgkey.expires)
+          end
         end
 
         def expires?
-          metadata["expiration"] != 0
+            # puts "will expire...?"
+            # pp to_gpgkey
+          to_gpgkey.expires?
         end
 
         def expired?
-          expires? && expiry_date < Time.now
+          # metadata["expired"] != 0
+          # expires? && expiry_date < Time.now
+          to_gpgkey.expired
         end
 
         def key_size
-          metadata["length"]
+          metadata["subkeys"][0]["length"].to_i
         end
 
         def fingerprint
-          read_attribute(:fingerprint) || metadata["fingerprint"]
+          # read_attribute(:fingerprint) || metadata["subkeys"][0]["fpr"]
+          read_attribute(:fingerprint) || to_gpgkey.fingerprint
         end
 
-        # TODO?  are we aggregating all user ids of the same key group?
         def userids
-          metadata["userids"]
+          metadata["uids"].map { |uid| uid["uid"] }
         end
 
-        # TODO? same question as above
         def userid
           userids&.first
         end
 
-        # TODO? same question as above
         def email
           userid.match(/<(.*@.*)>/)[1] if userid
         end
@@ -137,11 +119,12 @@ module Rails
         # Else, return nil? empty collection?
         def subkeys
           return self.class.none unless primary?
-          self.class.where(primary_key_grip: grip)
+          # TODO: GPGME: meaningful to ask for subkeys?
+          # self.class.where(primary_key_grip: grip)
         end
 
         def primary?
-          primary_key_grip.blank?
+          metadata["subkeys"][0]["fpr"] == fingerprint
         end
 
         def has_public?
@@ -160,47 +143,6 @@ module Rails
         end
         alias active active?
 
-        # TODO: make it private.?
-        # Internal(?) method to serialize DB key record back to an Rnp key object.
-        def derive_rnp_keys
-          # First, collect all primary key / subkeys
-          # XXX: For Factory-created keys where metadata is incomplete: Don't rely
-          # on metadata alone.
-          # Export... using....
-          # Query all keys for matching grips?
-          # 1) export self public & private to Rnp
-          [public, private].compact.map do |data|
-            rnp = self.class.load_key_string(data)
-            self.class.all_keys(rnp)
-          end.flatten
-        end
-
-        def derive_rnp_jsons
-          # 2) Get back metadata for subkey / primary key
-          # derive_rnp_keys.map(&:json).uniq { |j| j.values_at('keyid') }
-          # XXX: half is public, half is secret
-          derive_rnp_keys.map(&:json)
-        end
-
-        def all_related_grips
-          # 3) query DB for such extra grips
-          derive_rnp_json.map do |json|
-            ["primary key grip", "subkey grips"].map do |attr|
-              json[attr]
-            end.compact
-          end.flatten.uniq
-        end
-
-        # TODO: needed?
-        def derive_related_records
-          self.class.where(grip: all_related_grips)
-        end
-
-        # TODO: needed?
-        def derive_related_jsons
-          derive_related_records.map(&:metadata)
-        end
-
         # TODO: Move these to config/initializers
         UID_KEY_EMAIL_FIRST    = "notifications-noreply@example.com"
         UID_KEY_NAME_FIRST     = "Rails Notifications"
@@ -210,93 +152,206 @@ module Rails
         UID_KEY_NAME_SECOND    = "Rails Security"
         UID_KEY_COMMENT_SECOND = "for security advisories"
 
+        # -
+        class Fakelog
+          def puts(_stuff); end
+
+          def write(_stuff); end
+
+          def flush; end
+        end
+
         class << self
-          def build_rnp
-            Rnp.new
+
+          def debug_log
+            @debug_log ||= Fakelog.new
+            # $stderr
           end
 
-          attr_reader :rnp
+          # def get_generated_key(email: UID_KEY_EMAIL_FIRST)
+          #   {
+          #     public: public_key_from_keyring(email),
+          #     secret: secret_key_from_keyring(email),
+          #   }
+          # end
 
-          # TODO: spec it
-          def build_rnp_and_load_keys(homedir = Rnp.default_homedir)
-            homedir_info = ::Rnp.homedir_info(homedir)
-            public_info, secret_info = homedir_info.values_at(:public, :secret)
-
-            rnp = Rnp.new(public_info[:format], secret_info[:format])
-
-            [public_info, secret_info].each do |keyring_info|
-              input = ::Rnp::Input.from_path(keyring_info[:path])
-              rnp.load_keys(format: keyring_info[:format], input: input)
-            end
-
-            rnp
+          # URL:
+          # https://github.com/ueno/ruby-gpgme/blob/master/examples/genkey.rb
+          def progfunc(_hook, what, _type, current, total)
+            debug_log.write("#{what}: #{current}/#{total}\r")
+            debug_log.flush
           end
 
-          # Load into default RNP instance as well as to a new RNP
-          # instance just to differentiate between imported ones from
-          # existing ones.
-          # TODO: spec it
-          def load_key_string(key_string)
-            rnp = Rnp.new
-            rnp.load_keys(
-              format: "GPG",
-              input: Rnp::Input.from_string(key_string),
-              public_keys: true,
-              secret_keys: true,
+          # Return first public key with matching +email+
+          #
+          # NOTE: "first" assume there are no other keys with the same
+          # email
+          def public_key_from_keyring(email)
+            # puts "pubemail is #{email}"
+            # Note: "first" assume there are no other keys with the same email
+            public_key = GPGME::Key.find(:public, email).first
+            public_key.export(armor: true).to_s
+          end
+
+          # Return first private key with matching +email+
+          #
+          # NOTE: "first" assume there are no other keys with the same
+          # email
+          def secret_key_from_keyring(email)
+            # puts "secemail is #{email}"
+            secret_key = GPGME::Key.find(:secret, email).first
+            return nil unless secret_key
+
+            # GPGME does not allow exporting of private keys
+            # Unsafe:
+            # `gpg --export-secret-keys -a #{secret_key.fingerprint}`
+            # Doesn't return STDOUT:
+            # system('gpg', *(%w[--export-secret-keys -a] << secret_key.fingerprint))
+            f = IO.popen(%w[gpg --export-secret-keys -a] << secret_key.fingerprint)
+            f.readlines.join
+          ensure
+            f&.close
+          end
+
+          def add_uid_to_key(email: UID_KEY_EMAIL_FIRST)
+            ctx = GPGME::Ctx.new(
+              progress_callback: method(:progfunc),
+              passphrase_callback: method(:passfunc),
             )
+            Thread.current["rk-gpg-editkey-working"] = true
+            ctx.edit_key(ctx.keys(email).first, method(:add_uid_editfunc))
+          end
 
-            rnp
+          # Necessary for editfunc
+          def passfunc(_hook, _uid_hint, _passphrase_info, _prev_was_bad, file_descriptor)
+            io = IO.for_fd(file_descriptor, "w")
+            # Returns empty passphrase
+            io.puts("")
+            io.flush
+          end
+
+          # SECOND UID
+          def add_uid_params
+            {
+              "keyedit.prompt" => "adduid",
+              "keygen.name"    => UID_KEY_NAME_SECOND,
+              "keygen.email"   => UID_KEY_EMAIL_SECOND,
+              "keygen.comment" => UID_KEY_COMMENT_SECOND,
+            }
+          end
+
+          def add_uid_editfunc(_hook, status, args, file_descriptor)
+            # return if fd == "-1"
+            case status
+            when GPGME::GPGME_STATUS_GET_BOOL
+              debug_log.puts("# GPGME_STATUS_GET_BOOL")
+              io = IO.for_fd(file_descriptor)
+              # we always answer yes here
+              io.puts("Y")
+              io.flush
+            when GPGME::GPGME_STATUS_GET_LINE,
+              GPGME::GPGME_STATUS_GET_HIDDEN
+
+              debug_log.puts("# GPGME_STATUS_GET_(LINE/HIDDEN)")
+              debug_log.flush
+
+              input = add_uid_params[args]
+
+              if args == "keyedit.prompt"
+                if Thread.current["rk-gpg-editkey-working"]
+                  Thread.current["rk-gpg-editkey-working"] = nil
+                else
+                  input = "quit"
+                end
+              end
+
+              debug_log.puts(" $ #{args} => typing '#{input}'")
+              io = IO.for_fd(file_descriptor)
+              io.puts(input)
+              io.flush
+            when GPGME::GPGME_STATUS_GOT_IT
+              debug_log.puts("# GPGME_STATUS_GOT_IT")
+            when GPGME::GPGME_STATUS_GOOD_PASSPHRASE
+              debug_log.puts("# GPGME_STATUS_GOOD_PASSPHRASE, command complete")
+            when GPGME::GPGME_STATUS_EOF
+              debug_log.puts("# GPGME_STATUS_EOF, exiting now")
+            else
+              debug_log.puts("# error: unknown status from GPGME editkey. status(#{status}) args(#{args.inspect})")
+            end
           end
 
           # Actually save key_string into new record
           def import_key_string(key_string, activation_date: Time.now)
-            rnp = load_key_string(key_string)
-            all_keys(rnp).map do |raw|
-              metadata = raw.json
+            # puts "importing yo , #{key_string[0..10]}"
+            gpgkey_from_key_string(key_string).map do |raw|
+              metadata = raw.as_json
+              raw_expiration_date = metadata["subkeys"][0]["expires"]
+              expiration_date = raw_expiration_date == 0 ? nil : Time.at(raw_expiration_date)
+
+              # require 'pry'
+              # binding.pry
               creation_hash = {
-                private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-                public:           raw.public_key_present? ? raw.public_key_data : nil,
+                # TODO:
+                private:          secret_key_from_keyring(raw.email),
+                public:           public_key_from_keyring(raw.email),
                 activation_date:  activation_date,
+                expiration_date:  expiration_date,
                 metadata:         metadata,
-                primary_key_grip: metadata["primary key grip"],
-                grip:             metadata["grip"],
-                fingerprint:      metadata["fingerprint"],
+                fingerprint:      raw.fingerprint,
               }.reject { |_k, v| v.nil? }
 
               create(creation_hash)
             end
           end
 
-          def all_keys(rnp_instance)
-            rnp_instance.each_keyid.map { |k| rnp_instance.find_key(keyid: k) }
+          def gpgkey_from_key_string(key_string)
+            setup_gpghome
+            s = GPGME::Key.import(key_string)
+            # pp "imports plzx"
+            # pp s.imports
+              # require 'pry'
+              # binding.pry
+            GPGME::Key.find(:secret, s.imports.first.fpr) +
+              GPGME::Key.find(:public, s.imports.first.fpr)
           end
 
           # Expiration means the *duration*, not the actual point in
           # time.
-          # Use +key_expiration_time(rnp_key)+ for that purpose.
-          def key_validity_seconds(rnp_key)
-            rnp_key.json["expiration"]
+          # Use +key_expiration_time(gpg_key)+ for that purpose.
+          def key_validity_seconds(gpg_key)
+            gpg_key.as_json["expiration"]
           end
           private :key_validity_seconds
 
-          def key_creation_time(rnp_key)
-            Time.at(rnp_key.json["creation time"])
+          def key_creation_time(gpg_key)
+            Time.at(gpg_key.as_json["creation time"])
           end
           private :key_creation_time
 
           # +key_expiration_time+ is the actual point in time.
           # NOTE: This is different from the terminology used in RFC4880.
           # They use "expiration time" as the "validity period".
-          def key_expiration_time(rnp_key)
-            Time.at(key_creation_time(rnp_key) + key_validity_seconds(rnp_key))
+          def key_expiration_time(gpg_key)
+            Time.at(key_creation_time(gpg_key) + key_validity_seconds(gpg_key))
           end
           private :key_expiration_time
 
-          def key_expired?(rnp_key)
-            key_expiration_time(rnp_key) != 0 &&
-              key_expiration_time(rnp_key) > Time.now
+          def key_expired?(gpg_key)
+            key_expiration_time(gpg_key) != 0 &&
+              key_expiration_time(gpg_key) > Time.now
           end
           private :key_expired?
+
+          # URL:
+          # https://github.com/jkraemer/mail-gpg/blob/8ee91e49bdcff0a59a9952d45bb4f2c23525747d/Rakefile
+          def setup_gpghome
+            gpghome               = Dir.mktmpdir("rails-keyserver-gpghome")
+            ENV["GNUPGHOME"]      = gpghome
+            ENV["GPG_AGENT_INFO"] = "" # disable gpg agent
+
+            Rails.logger.info "[rails-keyserver] created temporary GNUPGHOME at #{gpghome}"
+            debug_log.puts "[rails-keyserver] created temporary GNUPGHOME at #{gpghome}"
+          end
 
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
@@ -304,18 +359,23 @@ module Rails
             email: UID_KEY_EMAIL_FIRST,
             creation_date: Time.now
           )
-            rnp = Rnp.new
-            generated = rnp.generate_key(
-              default_key_params(email: email, creation_date: creation_date),
+            ctx = GPGME::Ctx.new(
+              # progress_callback: method(:progfunc)
+              #passphrase_callback: method(:passfunc)
+            )
+            ctx.genkey(
+              default_key_params(email: email, creation_date: creation_date), nil, nil
             )
             activation_date = creation_date
+            pubkey = public_key_from_keyring(email)
+            seckey = secret_key_from_keyring(email)
 
             key_records = %i[primary sub].map do |key_type|
               raw           = generated[key_type]
               metadata      = raw.json
               creation_hash = {
-                private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-                public:           raw.public_key_present? ? raw.public_key_data : nil,
+                private:          seckey,
+                public:           pubkey,
                 activation_date:  activation_date,
                 metadata:         metadata,
                 primary_key_grip: metadata["primary key grip"],
@@ -383,27 +443,22 @@ module Rails
             expiry_date = creation_date + 1.year
             # expiry_date = creation_date + 365 * 60 * 60 * 24
 
-            {
-              primary: {
-                type: "RSA",
-                length: 4096,
-                userid: "#{UID_KEY_NAME_FIRST}#{email.present? ? " <#{email}>" : ''} #{UID_KEY_COMMENT_FIRST}".strip,
-                usage: [:sign],
-                expiration: date_format(expiry_date),
-                # These are the ruby-rnp defaults:
-                # preferences: { 'ciphers' => %w[AES256 AES192 AES128 TRIPLEDES],
-                #                'hashes' => %w[SHA256 SHA384 SHA512 SHA224 SHA1],
-                #                'compression' => %w[ZLIB BZip2 ZIP Uncompressed] },
-                preferences: { "ciphers" => %w[AES256 AES192 AES128 CAST5],
-                               "hashes" => %w[SHA512 SHA384 SHA256 SHA224],
-                               "compression" => %w[ZLIB BZip2 ZIP Uncompressed] },
-              },
-              sub: {
-                type: "RSA",
-                length: 4096,
-                usage: [:encrypt],
-              },
-            }
+            <<~EOOPTS
+              <GnupgKeyParms format="internal">
+              Key-Type: RSA
+              Key-Length: 4096
+              Key-Usage: sign
+              Subkey-Type: RSA
+              Subkey-Length: 4096
+              Subkey-Usage: encrypt
+              Name-Real: #{UID_KEY_NAME_FIRST}
+              Name-Comment: #{UID_KEY_COMMENT_FIRST}
+              Name-Email: #{email}
+              Expire-Date: #{gnupg_date_format(expiry_date)}
+              Creation-Date: #{gnupg_date_format(creation_date)}
+              Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
+              </GnupgKeyParms>
+            EOOPTS
           end
         end
       end

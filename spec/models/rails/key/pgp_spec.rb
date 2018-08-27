@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rails_helper"
+
 RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   let(:pub_key_path_1) { "spec/data/gpg/spec.pub" }
   let(:pub_key_string_1) { File.read pub_key_path_1 }
@@ -14,6 +16,28 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   end
 
   let(:key) { keys.first }
+
+  describe ".setup_gpghome" do
+    it "changes ENV['GNUPGHOME']" do
+      expect { described_class.setup_gpghome }.to change { ENV["GNUPGHOME"] }
+    end
+
+    it "changes ENV['GNUPGHOME'] to a valid file path" do
+      ENV["GNUPGHOME"] = "not valid path"
+      expect(File).to_not be_readable File.expand_path(ENV["GNUPGHOME"])
+
+      described_class.setup_gpghome
+      expect(File).to be_readable File.expand_path(ENV["GNUPGHOME"])
+    end
+
+    it "resets ENV['GPG_AGENT_INFO']" do
+      ENV["GPG_AGENT_INFO"] = "non-nil"
+      expect(ENV["GPG_AGENT_INFO"]).to_not be_blank
+
+      described_class.setup_gpghome
+      expect(ENV["GPG_AGENT_INFO"]).to be_blank
+    end
+  end
 
   describe ".import_key_string" do
     # let(:key) do
@@ -38,7 +62,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
           # XXX: What about:
           # let(:key_found_from_imported_keys) { keys.first }
 
-          context "the internal rnp instance" do
+          context "the internal GPGME instance" do
             it "contains 2 keys" do
               expect(keys.length).to eq 2
             end
@@ -47,9 +71,9 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
               expect(keys.first.fingerprint).to eq first_imported_key.fingerprint
             end
 
-            it "contains a key with matching grip" do
-              expect(keys.first.grip).to eq first_imported_key.grip
-            end
+            # it "contains a key with matching grip" do
+            #   expect(keys.first.grip).to eq first_imported_key.grip
+            # end
 
             it "contains a key with matching keyid" do
               expect(keys.first.key_id).to eq first_imported_key.key_id
@@ -117,6 +141,18 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
   end
 
+  describe ".passfunc" do
+    it "has arity of 5" do
+      expect(described_class.method(:passfunc).arity).to eq 5
+    end
+  end
+
+  describe ".progfunc" do
+    it "has arity of 5" do
+      expect(described_class.method(:progfunc).arity).to eq 5
+    end
+  end
+
   describe ".generate_new_key" do
     it "has an arity of 2" do
       # .arity returns -1 for variable params
@@ -147,7 +183,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       email = "test #{rand}"
       expect do
         described_class.generate_new_key(email: email)
-      end.to change { described_class.all.map(&:grip).length }.by(2)
+      end.to change { described_class.all.map(&:fingerprint).length }.by(2)
     end
 
     it 'increases the number of keys found in "userids"' do
@@ -215,29 +251,14 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         described_class.default_key_params(creation_date: creation_date, email: "random")
       end
 
-      it "returns a Hash" do
-        expect(result).to be_instance_of Hash
+      it "returns a String" do
+        expect(result).to be_instance_of String
       end
 
-      it 'returns a Hash with "primary" and "sub"' do
-        expect(result).
-          to include(:primary).and include(:sub)
-      end
-
-      it 'returns a "primary" Hash with :type, :length, :userid, :usage, :expiration' do
-        expect(result[:primary]).to(
-          %i[type length userid usage expiration].
-            map { |key| include key }.
-            reduce { |acc, constraint| acc.and(constraint) },
-        )
-      end
-
-      it 'returns a "sub" Hash with :type, :length, :usage' do
-        expect(result[:sub]).to(
-          %i[type length usage].
-            map { |key| include key }.
-            reduce { |acc, constraint| acc.and(constraint) },
-        )
+      context "with extra params" do
+        it "returns a String" do
+          expect(described_class.default_key_params(creation_date: DateTime.now, email: "there")).to be_instance_of String
+        end
       end
     end
 
@@ -265,7 +286,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         let(:email) { e }
 
         it "(#{e}) would contain it" do
-          expect(result[:primary][:userid]).to match(/#{e}/)
+          expect(result).to match(/Name-Email:\s*#{e}/)
         end
       end
     end
@@ -278,24 +299,23 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     ].each do |d|
       context "with different creation_date (#{d})" do
         let(:creation_date) { d }
-        let(:creation_date_int) { creation_date.to_i }
+        let(:creation_date_string) { creation_date.utc.iso8601.gsub(/-|:/, "")[0..-6] }
 
-        it "would contain it (#{d.to_i})" do
-          pending "Rnp Key creation parameters do not support creation date time?"
-          expect(result[:primary][:creation_date]).to eq creation_date_int
+        it "would contain it (#{d.utc.iso8601.gsub(/-|:/, '')[0..-6]})" do
+          expect(result).to match /Creation-Date:\s*#{creation_date_string}/
         end
 
-        it "would contain a corresponding expiration time (#{(d + 1.year).to_i})" do
-          expect(result[:primary][:expiration]).to eq((creation_date + 1.year).to_i)
+        it "would contain a corresponding expiration time (#{(d + 1.year).utc.iso8601.gsub(/-|:/, '')[0..-6]})" do
+          expect(result).to match(/#{(creation_date + 1.year).utc.iso8601.gsub(/-|:/, "")[0..-6]}/)
         end
       end
     end
 
-    %i[
-      UID_KEY_NAME_FIRST
-      UID_KEY_COMMENT_FIRST
-      UID_KEY_EMAIL_FIRST
-    ].each do |param_name|
+    {
+      "Name-Real"    => "UID_KEY_NAME_FIRST",
+      "Name-Comment" => "UID_KEY_COMMENT_FIRST",
+      "Name-Email"   => "UID_KEY_EMAIL_FIRST",
+    }.each do |field_name, param_name|
       [
         "sdflkj",
         23,
@@ -308,8 +328,8 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
             stub_const("#{described_class}::#{param_name}", value)
           end
 
-          it "contains it in the :primary.:userid" do
-            expect(result[:primary][:userid]).to match(/#{value}/)
+          it "contains it in the #{field_name}" do
+            expect(result).to match(/#{field_name}:\s*#{value}/)
           end
         end
       end
@@ -359,7 +379,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
   end
 
-  xdescribe ".public_key_from_keyring" do
+  describe ".public_key_from_keyring" do
     it "has an arity of 1" do
       expect(described_class.method(:public_key_from_keyring).arity).to eq 1
     end
@@ -370,15 +390,15 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
     let(:email) { key.email }
 
-    it "returns a Rnp::Key" do
-      expect(result).to be_a Rnp::Key
+    it "returns a String" do
+      expect(result).to be_a String
     end
 
     context "for a non-existent email" do
       let(:email) { key.email + "1" }
 
-      it "returns nil" do
-        expect(result).to be_nil
+      it "raises NoMethodError" do
+        expect { result }.to raise_error NoMethodError
       end
     end
   end
@@ -392,11 +412,11 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
     let(:result) do
       described_class.generate_new_key(email: email)
-      described_class.get_generated_key(email: email)[:secret]
+      described_class.secret_key_from_keyring(email)
     end
 
-    it "returns a Rnp::Key" do
-      expect(result).to be_a Rnp::Key
+    it "returns a String" do
+      expect(result).to be_a String
     end
 
     context "for a non-existent email" do
@@ -459,17 +479,13 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
   end
 
-  xdescribe ".add_uid_to_key" do
+  describe ".add_uid_to_key" do
     it "has an arity of 1" do
-      expect(described_class.method(:add_uid_to_key).parameters.length).to eq 2
+      expect(described_class.method(:add_uid_to_key).parameters.length).to eq 1
     end
 
-    it "has a specific set of parameters" do
-      expect(described_class.method(:add_uid_to_key).parameters).to(
-        [%i[keyreq userid], %i[key target_email]].map do |cons|
-          include cons
-        end.reduce { |acc, cons| acc.and(cons) },
-      )
+    it "has a specific set of optional parameters" do
+      expect(described_class.method(:add_uid_to_key).parameters).to include %i[key email]
     end
 
     context "with missing :userid" do
@@ -480,13 +496,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
     context "with a random email" do
       it "raises TypeError" do
-        pending "It currently doesn't check for email address syntax"
-        expect do
-          described_class.add_uid_to_key(
-            userid: "Example Addition #{rand} <valid@example.com>",
-            target_email: "random",
-          )
-        end.to raise_error TypeError
+        expect { described_class.add_uid_to_key(email: "random") }.to raise_error TypeError
       end
     end
 
@@ -494,28 +504,35 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       it "succeeds without errors" do
         expect do
           described_class.add_uid_to_key(
-            userid: "Example Addition #{rand} <valid@example.com>",
+            email: described_class::UID_KEY_EMAIL_FIRST,
           )
         end.to_not raise_error
       end
 
       it "appears in .userids" do
-        generated_keys = described_class.generate_new_key(
-          email: described_class::UID_KEY_EMAIL_FIRST,
-        )
-        key_grip = generated_keys[:primary].json["grip"]
+        # generated_keys = described_class.generate_new_key(
+        #   email: described_class::UID_KEY_EMAIL_FIRST,
+        # )
 
         measurement = lambda {
-          Set.new(described_class.send(:rnp).find_key(
-            grip: key_grip,
-          ).userids)
+          Set.new(described_class.all.to_a.select do |key|
+            key.userids.include?(described_class::UID_KEY_EMAIL_FIRST)
+          end)
         }
-        additional_userid = "Example Addition #{rand} <valid@example.com>"
+        additional_name = "Example Addition #{rand}"
+        additional_email = "valid@example.com"
+        additional_comment = "some comment"
+        additional_userid = "#{additional_name} (#{additional_comment}) <#{additional_email}>"
+        allow(described_class).to receive(:add_uid_params).and_return(
+          "keyedit.prompt" => "adduid",
+          "keygen.name" => additional_name,
+          "keygen.email" => additional_email,
+          "keygen.comment" => additional_comment,
+        )
 
         set1 = measurement.call
         described_class.add_uid_to_key(
-          target_email: described_class::UID_KEY_EMAIL_FIRST,
-          userid: additional_userid,
+          email: described_class::UID_KEY_EMAIL_FIRST,
         )
         set2 = measurement.call
 
@@ -523,6 +540,107 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         expect(diff).to_not be_empty
         expect(diff.first).to eq additional_userid
       end
+    end
+
+    xit "calls :add_uid_editfunc" do
+      pending "example runs forever until interrupted"
+      expect(described_class).to receive(:add_uid_editfunc).once
+      described_class.add_uid_to_key
+    end
+
+    xit "sets Thread.current['rk-gpg-editkey-working'] to 'true'" do
+      pending "Thread local variables cannot be tested"
+      expect { described_class.add_uid_to_key }.to change {
+        Thread.current["rk-gpg-editkey-working"]
+      }.to true
+    end
+
+    it "sets Thread.current['rk-gpg-editkey-working'] to 'true'" do
+      expect(Thread.current).to receive(:[]=).with("rk-gpg-editkey-working", true)
+      described_class.add_uid_to_key
+    end
+  end
+
+  describe ".add_uid_editfunc" do
+
+    it "has an arity of 4" do
+      expect(described_class.method(:add_uid_editfunc).arity).to eq 4
+    end
+
+      # when GPGME::GPGME_STATUS_GET_BOOL
+      #   debug_log.puts("# GPGME_STATUS_GET_BOOL")
+      #   io = IO.for_fd(fd)
+      #   # we always answer yes here
+      #   io.puts("Y")
+      #   io.flush
+      # when GPGME::GPGME_STATUS_GET_LINE,
+      #   GPGME::GPGME_STATUS_GET_HIDDEN
+      #
+      #   debug_log.puts("# GPGME_STATUS_GET_(LINE/HIDDEN)")
+      #   debug_log.flush
+      #
+      #   input = add_uid_params[args]
+      #
+      #   if args == "keyedit.prompt"
+      #     if Thread.current['rk-gpg-editkey-working']
+      #       Thread.current['rk-gpg-editkey-working'] = nil
+      #     else
+      #       input = "quit"
+      #     end
+      #   end
+      #
+      #   debug_log.puts(" $ #{args} => typing '#{input}'")
+      #   io = IO.for_fd(fd)
+      #   io.puts(input)
+      #   io.flush
+
+    describe "when :status" do
+      {
+        GPGME::GPGME_STATUS_GOT_IT          => "# GPGME_STATUS_GOT_IT",
+        GPGME::GPGME_STATUS_GOOD_PASSPHRASE => "# GPGME_STATUS_GOOD_PASSPHRASE, command complete",
+        GPGME::GPGME_STATUS_EOF             => "# GPGME_STATUS_EOF, exiting now",
+        "unknown"                           => "# error: unknown status from GPGME editkey. status(unknown) args(2)",
+      }.each do |key, val|
+        context "is #{key}" do
+          let(:status) { key }
+          let(:action) { described_class.add_uid_editfunc(nil, status, 2, 4) }
+          it "debug_log.puts(#{val})" do
+            expect(described_class.debug_log).to receive(:puts).with(val)
+            action
+          end
+
+        end
+      end
+    end
+
+    it "reads from the key" do
+      pending "TBI mock IO"
+      # fd = IO.sysopen("/dev/tty", "w")
+      io = IO.new 2
+      # io = IO.for_fd fd
+
+      def io.write stuff
+        @buffer ||= ""
+        @buffer << stuff
+      end
+
+      def io.gets
+        @buffer
+      end
+
+      described_class.add_uid_editfunc(nil, GPGME::GPGME_STATUS_GET_BOOL, 2, 4)
+      expect(io.gets).to eq "Y\n"
+    end
+  end
+
+  describe ".add_uid_params" do
+    it "returns a specific Hash" do
+      expect(described_class.add_uid_params).to eq ({
+        "keyedit.prompt" => "adduid",
+        "keygen.name"    => RK::Key::PGP::UID_KEY_NAME_SECOND,
+        "keygen.email"   => RK::Key::PGP::UID_KEY_EMAIL_SECOND,
+        "keygen.comment" => RK::Key::PGP::UID_KEY_COMMENT_SECOND,
+      })
     end
   end
 
