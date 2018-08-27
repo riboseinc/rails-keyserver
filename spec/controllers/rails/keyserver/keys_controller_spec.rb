@@ -128,7 +128,6 @@ module Rails::Keyserver::Api::V1
           end
 
           it "returns an ASCII-armoured public key" do
-            pending "implementation in ruby-rnp"
             expect(response.body).to match(/\A-----BEGIN PGP PUBLIC KEY BLOCK-----/)
             expect(response.body).to match(/-----END PGP PUBLIC KEY BLOCK-----(?:\n)?\z/)
           end
@@ -438,7 +437,7 @@ module Rails::Keyserver::Api::V1
           end
         end
 
-        let(:date_from) { Time.now - 3.years }
+        let(:date_from) { now - 3.years }
         let(:date_to)   { date_from + 6.years }
 
         before do
@@ -446,11 +445,11 @@ module Rails::Keyserver::Api::V1
             key = timecopped(time) do
               # FactoryBot.create :rails_keyserver_key_pgp,
               # activation_date: time
-              (RK::Key::PGP.import_key_string key_string_1,
-                                              activation_date: time).first
+              RK::Key::PGP.import_key_string(key_string_1,
+                                             activation_date: time.round(0)).first
             end
 
-            expect(key.activation_date.to_i).to eq time.to_i
+            expect(key.activation_date.utc.round(0)).to eq time.utc.round(0)
           end
           action[]
         end
@@ -550,7 +549,7 @@ module Rails::Keyserver::Api::V1
           end
         end
 
-        let(:date_from) { Time.now - 3.years }
+        let(:date_from) { now - 3.years }
         let(:date_to)   { date_from + 6.years }
 
         before do
@@ -559,10 +558,10 @@ module Rails::Keyserver::Api::V1
               # FactoryBot.create :rails_keyserver_key_pgp,
               #                   activation_date: time
               RK::Key::PGP.import_key_string(key_string_1,
-                                             activation_date: time).first
+                                             activation_date: time.round(0)).first
             end
 
-            expect(key.activation_date.to_i).to eq time.to_i
+            expect(key.activation_date.utc.round(0)).to eq time.utc.round(0)
           end
           action[]
         end
