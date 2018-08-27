@@ -57,7 +57,7 @@ module Rails::Keyserver
       end
     end
 
-    describe ".grip" do
+    xdescribe ".grip" do
       before do
         5.times do
           FactoryBot.create :rails_keyserver_key_pgp
