@@ -12,16 +12,9 @@ module Rails
         end
 
         def url
-          # TODO: move to config/initializers
-          host = if defined?(CONFIG)
-                   CONFIG[:app_host]
-                 else
-                   "localhost"
-                 end
-
           RK::Engine.routes.url_helpers.api_v1_key_url(
             "#{fingerprint}.#{RK::Key::PGP.extension}",
-            host: host,
+            host: Engine.key_host || "localhost",
           )
         end
 
@@ -201,16 +194,16 @@ module Rails
           derive_related_records.map(&:metadata)
         end
 
-        # TODO: Move these to config/initializers
-        UID_KEY_EMAIL_FIRST    = "notifications-noreply@example.com"
-        UID_KEY_NAME_FIRST     = "Rails Notifications"
-        UID_KEY_COMMENT_FIRST  = "for system notifications"
+        UID_KEY_EMAIL_FIRST    = Engine.uid_email_1   || "notifications-noreply@example.com"
+        UID_KEY_NAME_FIRST     = Engine.uid_name_1    || "Rails Notifications"
+        UID_KEY_COMMENT_FIRST  = Engine.uid_comment_1 || "for system notifications"
 
-        UID_KEY_EMAIL_SECOND   = "security.team@example.com"
-        UID_KEY_NAME_SECOND    = "Rails Security"
-        UID_KEY_COMMENT_SECOND = "for security advisories"
+        UID_KEY_EMAIL_SECOND   = Engine.uid_email_2   || "security.team@example.com"
+        UID_KEY_NAME_SECOND    = Engine.uid_name_2    || "Rails Security"
+        UID_KEY_COMMENT_SECOND = Engine.uid_comment_2 || "for security advisories"
 
         class << self
+
           def build_rnp
             Rnp.new
           end
