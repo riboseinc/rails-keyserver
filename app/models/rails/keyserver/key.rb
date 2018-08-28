@@ -38,13 +38,13 @@ module Rails
       belongs_to :owner, polymorphic: true
 
       # XXX: key blankness should ideally be checked in attr_encrypted!
-      if Engine.encryption_key.blank?
+      if Engine.config.encryption_key.blank?
         raise EncryptionKeyNotFoundException,
-              "Engine.encryption_key is blank!"
+              "Engine.config.encryption_key is blank!"
       end
 
       attr_encrypted :private,
-                     key:  Engine.encryption_key,
+                     key:  Engine.config.encryption_key,
                      mode: :per_attribute_iv_and_salt
 
       scope :primary, -> {

@@ -1,1 +1,1 @@
-Rails::Keyserver::Engine.encryption_key = "hi" * 32
+Rails::Keyserver::Engine.config.encryption_key = "hi" * 32
