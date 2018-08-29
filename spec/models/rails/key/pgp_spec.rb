@@ -292,9 +292,9 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
 
     %i[
-      UID_KEY_NAME_FIRST
-      UID_KEY_COMMENT_FIRST
-      UID_KEY_EMAIL_FIRST
+      uid_email_1
+      uid_name_1
+      uid_comment_1
     ].each do |param_name|
       [
         "sdflkj",
@@ -305,7 +305,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
         context "with a different #{param_name} (#{value})" do
           before do
-            stub_const("#{described_class}::#{param_name}", value)
+            Rails::Keyserver::Engine.config.send("#{param_name}=", value)
           end
 
           it "contains it in the :primary.:userid" do
@@ -501,7 +501,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
       it "appears in .userids" do
         generated_keys = described_class.generate_new_key(
-          email: described_class::UID_KEY_EMAIL_FIRST,
+          email: Engine.config.uid_email_1,
         )
         key_grip = generated_keys[:primary].json["grip"]
 
@@ -514,7 +514,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
         set1 = measurement.call
         described_class.add_uid_to_key(
-          target_email: described_class::UID_KEY_EMAIL_FIRST,
+          target_email: Engine.config.uid_email_1,
           userid: additional_userid,
         )
         set2 = measurement.call
