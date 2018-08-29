@@ -11,17 +11,21 @@ module Rails
           :asc
         end
 
-        def url
-          # TODO: move to config/initializers
-          host = if defined?(CONFIG)
-                   CONFIG[:app_host]
-                 else
-                   "localhost"
-                 end
+        # TODO: These defaults belong in somewhere else?
+        Engine.config.key_host = nil
 
+        Engine.config.uid_email_1   = "notifications-noreply@example.com"
+        Engine.config.uid_name_1    = "Rails Notifications"
+        Engine.config.uid_comment_1 = "for system notifications"
+
+        Engine.config.uid_email_2   = "security.team@example.com"
+        Engine.config.uid_name_2    = "Rails Security"
+        Engine.config.uid_comment_2 = "for security advisories"
+
+        def url
           RK::Engine.routes.url_helpers.api_v1_key_url(
             "#{fingerprint}.#{RK::Key::PGP.extension}",
-            host: host,
+            host: Engine.config.key_host || "localhost",
           )
         end
 
@@ -201,15 +205,6 @@ module Rails
           derive_related_records.map(&:metadata)
         end
 
-        # TODO: Move these to config/initializers
-        UID_KEY_EMAIL_FIRST    = "notifications-noreply@example.com"
-        UID_KEY_NAME_FIRST     = "Rails Notifications"
-        UID_KEY_COMMENT_FIRST  = "for system notifications"
-
-        UID_KEY_EMAIL_SECOND   = "security.team@example.com"
-        UID_KEY_NAME_SECOND    = "Rails Security"
-        UID_KEY_COMMENT_SECOND = "for security advisories"
-
         class << self
           def build_rnp
             Rnp.new
@@ -301,7 +296,7 @@ module Rails
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
           def generate_new_key(
-            email: UID_KEY_EMAIL_FIRST,
+            email: Engine.config.uid_email_1,
             creation_date: Time.now
           )
             rnp = Rnp.new
@@ -372,7 +367,7 @@ module Rails
           # - primary key is for SC (sign, certify)
           # - subkey is for E (encrypton)
           # NOTE: creation_date has to be a +DateTime+/+Time+/+Date+
-          def default_key_params(email: UID_KEY_EMAIL_FIRST, creation_date:)
+          def default_key_params(email: Engine.config.uid_email_1, creation_date:)
             case creation_date
             when DateTime, Time, Date then creation_date
             else raise ArgumentError,
@@ -387,7 +382,7 @@ module Rails
               primary: {
                 type: "RSA",
                 length: 4096,
-                userid: "#{UID_KEY_NAME_FIRST}#{email.present? ? " <#{email}>" : ''} #{UID_KEY_COMMENT_FIRST}".strip,
+                userid: "#{Engine.config.uid_name_1}#{email.present? ? " <#{email}>" : ''} #{Engine.config.uid_comment_1}".strip,
                 usage: [:sign],
                 expiration: date_format(expiry_date),
                 # These are the ruby-rnp defaults:
