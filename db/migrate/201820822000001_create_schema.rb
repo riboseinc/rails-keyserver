@@ -9,12 +9,12 @@
 #
 class CreateSchema < ActiveRecord::Migration[5.1]
   require 'activeuuid'
-  def change
+  def up
 
-    create_table "generic_key_owners", id: :uuid, force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" do |t|
+    create_table :generic_key_owners, id: :uuid, force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" do |t|
       t.datetime "created_at"
       t.datetime "updated_at"
-    end
+    end if Rails.env.test? && !table_exists?(:generic_key_owners)
 
     create_table :rails_keyserver_keys, id: false do |t|
       t.uuid       :id, primary_key: true
@@ -32,9 +32,12 @@ class CreateSchema < ActiveRecord::Migration[5.1]
       t.string     :grip
       t.string     :fingerprint
       t.datetime   :expiration_date
-    end
+    end unless table_exists?(:rails_keyserver_keys)
+  end
 
-    # add_index :rails_keyserver_keys, %i[id fingerprint], name: :index_key_fingerprints_on_keys, using: :btree, length: {key_id: 16, fingerprint: 40}
+  def down
+    drop_table :generic_key_owners if table_exists?(:generic_key_owners)
+    warn "Table :rails_keyserver_keys left intact"
   end
 end
 
