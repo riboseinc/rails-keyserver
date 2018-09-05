@@ -20,6 +20,7 @@ PATH
       active_model_serializers
       attr_encrypted
       gpgme
+      graphql
       mysql2 (~> 0.3.21)
       rails (~> 5.1.6)
       rake
@@ -98,6 +99,7 @@ GEM
       activesupport (>= 4.2.0)
     gpgme (2.0.16)
       mini_portile2 (~> 2.3)
+    graphql (1.8.8)
     i18n (1.1.0)
       concurrent-ruby (~> 1.0)
     jaro_winkler (1.5.1)
@@ -226,4 +228,4 @@ DEPENDENCIES
   sqlite3
 
 BUNDLED WITH
-   1.16.3
+   1.16.4

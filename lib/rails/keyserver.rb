@@ -8,7 +8,7 @@ require "gpgme"
 require "rnp"
 # require "mail-gpg"
 require "attr_encrypted"
-# require "graphql"
+require "graphql"
 
 module Rails
   module Keyserver
