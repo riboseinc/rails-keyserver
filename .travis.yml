@@ -32,6 +32,6 @@ cache:
     - "$RNP_INSTALL"
 
 before_install:
-  - gem install bundler -v 1.16.3
+  - gem install bundler -v 1.16.6
   - mysql -e 'CREATE DATABASE keyserver_test;'
   - ./ci/install.sh
