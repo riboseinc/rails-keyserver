@@ -12,6 +12,8 @@ rvm:
 
 env:
   global:
+    - RNP_VERSION="master"
+
     - DATABASE_URL="mysql2://travis@127.0.0.1/keyserver_test"
 
     - DEPS_BUILD_DIR="${TRAVIS_BUILD_DIR}/build"
@@ -36,10 +38,6 @@ env:
 
     - PATH="${RNP_PREFIX}/bin:${PATH}"
 
-  matrix:
-    - RNP_VERSION="master"
-    - RNP_VERSION="v0.9.1"
-
 cache:
   bundler: true
   directories:
@@ -54,3 +52,8 @@ before_install:
   - ./install_json_c.sh
   - ./install_rnp.sh
   - popd
+
+matrix:
+  include:
+    - rvm: "2.5"
+      env: RNP_VERSION="v0.9.1"
