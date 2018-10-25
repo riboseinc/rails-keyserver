@@ -16,7 +16,7 @@ branches:
 
 env:
   global:
-    - DATABASE_URL=mysql2://travis@127.0.0.1/keyserver_test
+    - DATABASE_URL="mysql2://travis@127.0.0.1/keyserver_test"
     - LOCAL_BUILDS="$HOME/local-builds"
     - BOTAN_INSTALL="${LOCAL_BUILDS}/botan-install"
     - CMOCKA_INSTALL="${LOCAL_BUILDS}/cmocka-install"
@@ -24,8 +24,8 @@ env:
     - RNP_INSTALL="${LOCAL_BUILDS}/rnp-install"
     - LD_LIBRARY_PATH="${BOTAN_INSTALL}/lib:${CMOCKA_INSTALL}/lib:${JSONC_INSTALL}/lib:${RNP_INSTALL}/lib"
   matrix:
-    - RNP_VERSION=master
-    - RNP_VERSION=v0.9.1
+    - RNP_VERSION="master"
+    - RNP_VERSION="v0.9.1"
 
 cache:
   bundler: true
