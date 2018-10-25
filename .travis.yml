@@ -13,12 +13,29 @@ rvm:
 env:
   global:
     - DATABASE_URL="mysql2://travis@127.0.0.1/keyserver_test"
-    - LOCAL_BUILDS="$HOME/local-builds"
-    - BOTAN_INSTALL="${LOCAL_BUILDS}/botan-install"
-    - CMOCKA_INSTALL="${LOCAL_BUILDS}/cmocka-install"
-    - JSONC_INSTALL="${LOCAL_BUILDS}/jsonc-install"
-    - RNP_INSTALL="${LOCAL_BUILDS}/rnp-install"
-    - LD_LIBRARY_PATH="${BOTAN_INSTALL}/lib:${CMOCKA_INSTALL}/lib:${JSONC_INSTALL}/lib:${RNP_INSTALL}/lib"
+
+    - DEPS_BUILD_DIR="${TRAVIS_BUILD_DIR}/build"
+    - DEPS_PREFIX="${TRAVIS_BUILD_DIR}/opt"
+    - BOTAN_PREFIX="${DEPS_PREFIX}/botan"
+    - JSONC_PREFIX="${DEPS_PREFIX}/json-c"
+    - RNP_PREFIX="${DEPS_PREFIX}/rnp"
+
+    # Be aware of differences between LD_LIBRARY_PATH and LD_RUN_PATH.
+    # - http://osr507doc.sco.com/en/tools/ccs_linkedit_dynamic_dirsearch.html
+    # - https://www.hpc.dtu.dk/?page_id=1180
+    #
+    # You should be careful when attempting to replicate following in your
+    # setup, because setting LD_LIBRARY_PATH is often a bad idea.  Nevertheless,
+    # it is okay here in Travis, and actually any attempt to change these led me
+    # to linking failures.  Side note: I am not a Linux expert, and you may be
+    # more lucky.
+    #
+    # I'd be happy to get rid of LD_LIBRARY_PATH eventually in some future
+    # pull request.
+    - LD_LIBRARY_PATH="${BOTAN_PREFIX}/lib:${JSONC_PREFIX}/lib:${RNP_PREFIX}/lib"
+
+    - PATH="${RNP_PREFIX}/bin:${PATH}"
+
   matrix:
     - RNP_VERSION="master"
     - RNP_VERSION="v0.9.1"
@@ -26,12 +43,14 @@ env:
 cache:
   bundler: true
   directories:
-    - "$BOTAN_INSTALL"
-    - "$CMOCKA_INSTALL"
-    - "$JSONC_INSTALL"
-    - "$RNP_INSTALL"
+    - "${DEPS_PREFIX}"
 
 before_install:
   - gem install bundler -v 1.16.6
   - mysql -e 'CREATE DATABASE keyserver_test;'
-  - ./ci/install.sh
+  - mkdir -p ${DEPS_PREFIX}
+  - pushd ci
+  - ./install_botan.sh
+  - ./install_json_c.sh
+  - ./install_rnp.sh
+  - popd
