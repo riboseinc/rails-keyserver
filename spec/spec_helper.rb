@@ -18,7 +18,7 @@
 
 # URL: 
 # http://stackoverflow.com/questions/22860025/rails-4-mounted-engine-with-rspec-and-factory-girl-rails
-ENGINE_RAILS_ROOT=File.join(__dir__, '../')
+ENGINE_RAILS_ROOT=File.join(__dir__, "../")
 Dir[File.join(ENGINE_RAILS_ROOT, "spec/factories/**/*.rb")].each {|f| require f }
 
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
