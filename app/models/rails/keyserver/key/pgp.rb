@@ -323,7 +323,6 @@ module Rails
 
             # Return the primary key
             key_records.first
-
           rescue StandardError
             warn $!.message
             warn "error: #{$ERROR_INFO.pretty_inspect}"
