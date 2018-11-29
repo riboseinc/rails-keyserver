@@ -10,7 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 201820822000001) do
+ActiveRecord::Schema.define(version: 20180822000001) do
+
   create_table "generic_key_owners", id: :uuid, force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" do |t|
     t.datetime "created_at"
     t.datetime "updated_at"
