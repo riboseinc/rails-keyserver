@@ -21,7 +21,6 @@ Gem::Specification.new do |spec|
                      'using "attr_encrypted".'
   spec.license     = "MIT"
 
-  spec.has_rdoc             = "yard"
   spec.metadata["yard.run"] = "yard"
 
   spec.files            = `git ls-files -z`.split("\x0").grep(%r{^(lib)/})
