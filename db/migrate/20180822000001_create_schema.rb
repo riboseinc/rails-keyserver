@@ -23,7 +23,6 @@ class CreateSchema < ActiveRecord::Migration[5.1]
       t.string     :owner_type
       t.binary     :public
       t.binary     :encrypted_private
-      t.binary     :encrypted_private_salt
       t.binary     :encrypted_private_iv
       t.datetime   :activation_date
       t.text       :metadata

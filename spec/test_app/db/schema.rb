@@ -23,7 +23,6 @@ ActiveRecord::Schema.define(version: 20180822000001) do
     t.string "owner_type"
     t.binary "public"
     t.binary "encrypted_private"
-    t.binary "encrypted_private_salt"
     t.datetime "activation_date"
     t.text "metadata"
     t.datetime "created_at"

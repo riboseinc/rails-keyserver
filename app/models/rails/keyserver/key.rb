@@ -47,7 +47,7 @@ module Rails
 
       attr_encrypted :private,
                      key:  Engine.config.encryption_key,
-                     mode: :per_attribute_iv_and_salt
+                     mode: Engine.config.try(:encryption_mode) || :per_attribute_iv
 
       scope :primary, -> {
         pkg = arel_table[:primary_key_grip]

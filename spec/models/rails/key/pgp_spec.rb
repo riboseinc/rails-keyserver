@@ -640,5 +640,4 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   # - read rails pub & pri
   # - Remove private key once a new key is activated
   # - Change encryption key of the new key when it is encrypted
-  # use salt
 end
