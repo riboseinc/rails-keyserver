@@ -248,16 +248,9 @@ module Rails
             rnp = load_key_string(key_string)
             all_keys(rnp).map do |raw|
               metadata = raw.json
-              creation_hash = {
-                private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-                public:           raw.public_key_present? ? raw.public_key_data : nil,
-                activation_date:  activation_date,
-                metadata:         metadata,
-                primary_key_grip: metadata["primary key grip"],
-                grip:             metadata["grip"],
-                fingerprint:      metadata["fingerprint"],
-              }.reject { |_k, v| v.nil? }
-
+              creation_hash = creation_params(
+                raw: raw, activation_date: activation_date, metadata: metadata,
+              )
               create(creation_hash)
             end
           end
@@ -293,6 +286,22 @@ module Rails
           end
           private :key_expired?
 
+          # Generate params for #create
+          def creation_params(raw:, activation_date:, metadata:)
+            {
+              private:          raw.secret_key_present? ? raw.secret_key_data : nil,
+              public:           raw.public_key_present? ? raw.public_key_data : nil,
+              activation_date:  activation_date,
+              metadata:         metadata,
+              primary_key_grip: metadata["primary key grip"],
+              grip:             metadata["grip"],
+              fingerprint:      metadata["fingerprint"],
+            }.reject { |_k, v| v.nil? }
+          end
+          private :creation_params
+
+          # Generate a primary key and a corresponding subkey, and return the
+          # primary key.
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
           def generate_new_key(
@@ -303,25 +312,17 @@ module Rails
             generated = rnp.generate_key(
               default_key_params(email: email, creation_date: creation_date),
             )
-            activation_date = creation_date
 
             key_records = %i[primary sub].map do |key_type|
               raw           = generated[key_type]
               metadata      = raw.json
-              creation_hash = {
-                private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-                public:           raw.public_key_present? ? raw.public_key_data : nil,
-                activation_date:  activation_date,
-                metadata:         metadata,
-                primary_key_grip: metadata["primary key grip"],
-                grip:             metadata["grip"],
-                fingerprint:      metadata["fingerprint"],
-              }.reject { |_k, v| v.nil? }
+              creation_hash = creation_params(
+                raw: raw, activation_date: creation_date, metadata: metadata,
+              )
 
               RK::Key::PGP.create(creation_hash)
             end
 
-            # Return the primary key
             key_records.first
           rescue StandardError
             warn $!.message
