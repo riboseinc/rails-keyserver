@@ -30,26 +30,35 @@ module Rails
         end
 
         def derive_metadata_if_empty
-          # jsons usually has 2 items. Which one to use?
-          # Match keyid? fingerprint? grip? TODO: match by grip
-          # TODO: or, use the one with nil primary key grip?
-          # or. just pick one, doesn't matter???
-          if metadata.empty?
-            jsons = derive_rnp_jsons
-            primary_jsons = jsons.select { |j| j["primary key grip"].nil? }
-            primary_secret_json = primary_jsons.detect { |j| j["secret key"]["present"] }
-            primary_public_json = primary_jsons.detect { |j| j["public key"]["present"] }
+          derive_metadata if metadata.empty?
+        end
 
-            if primary_secret_json
-              json = primary_secret_json
-              if primary_public_json
-                json["public key"] = primary_public_json["public key"]
+        # Pick the one without primar key grip.
+        # jsons usually has 2 items. Which one to use?
+        # Match keyid? fingerprint? grip? TODO: match by grip
+        def derive_metadata
+          primary_jsons = derive_rnp_jsons.reject { |j| j["primary key grip"] }
+          secret_json, public_json = %w[secret public].map do |k|
+            primary_jsons.detect { |j| j["#{k} key"]["present"] }
+          end
+
+          json = merge_public_secret_jsons(
+            secret_json: secret_json,
+            public_json: public_json,
+          )
+
+          update_column(:metadata, json)
+        end
+
+        def merge_public_secret_jsons(public_json:, secret_json:)
+          if secret_json
+            secret_json.tap do |j|
+              if public_json
+                j["public key"] = public_json["public key"]
               end
-            else
-              json = primary_public_json
             end
-
-            update_column(:metadata, json)
+          else
+            public_json
           end
         end
 
@@ -206,25 +215,18 @@ module Rails
         end
 
         class << self
-          def build_rnp
-            Rnp.new
-          end
-
-          attr_reader :rnp
 
           # TODO: spec it
           def build_rnp_and_load_keys(homedir = Rnp.default_homedir)
             homedir_info = ::Rnp.homedir_info(homedir)
             public_info, secret_info = homedir_info.values_at(:public, :secret)
 
-            rnp = Rnp.new(public_info[:format], secret_info[:format])
-
-            [public_info, secret_info].each do |keyring_info|
-              input = ::Rnp::Input.from_path(keyring_info[:path])
-              rnp.load_keys(format: keyring_info[:format], input: input)
+            Rnp.new(public_info[:format], secret_info[:format]).tap do |rnp|
+              [public_info, secret_info].each do |keyring_info|
+                input = ::Rnp::Input.from_path(keyring_info[:path])
+                rnp.load_keys(format: keyring_info[:format], input: input)
+              end
             end
-
-            rnp
           end
 
           # Load into default RNP instance as well as to a new RNP
@@ -232,15 +234,14 @@ module Rails
           # existing ones.
           # TODO: spec it
           def load_key_string(key_string)
-            rnp = Rnp.new
-            rnp.load_keys(
-              format: "GPG",
-              input: Rnp::Input.from_string(key_string),
-              public_keys: true,
-              secret_keys: true,
-            )
-
-            rnp
+            Rnp.new.tap do |rnp|
+              rnp.load_keys(
+                format: "GPG",
+                input: Rnp::Input.from_string(key_string),
+                public_keys: true,
+                secret_keys: true,
+              )
+            end
           end
 
           # Actually save key_string into new record
@@ -259,75 +260,25 @@ module Rails
             rnp_instance.each_keyid.map { |k| rnp_instance.find_key(keyid: k) }
           end
 
-          # Expiration means the *duration*, not the actual point in
-          # time.
-          # Use +key_expiration_time(rnp_key)+ for that purpose.
-          def key_validity_seconds(rnp_key)
-            rnp_key.json["expiration"]
-          end
-          private :key_validity_seconds
-
-          def key_creation_time(rnp_key)
-            Time.at(rnp_key.json["creation time"])
-          end
-          private :key_creation_time
-
-          # +key_expiration_time+ is the actual point in time.
-          # NOTE: This is different from the terminology used in RFC4880.
-          # They use "expiration time" as the "validity period".
-          def key_expiration_time(rnp_key)
-            Time.at(key_creation_time(rnp_key) + key_validity_seconds(rnp_key))
-          end
-          private :key_expiration_time
-
-          def key_expired?(rnp_key)
-            key_expiration_time(rnp_key) != 0 &&
-              key_expiration_time(rnp_key) > Time.now
-          end
-          private :key_expired?
-
-          # Generate params for #create
-          def creation_params(raw:, activation_date:, metadata:)
-            {
-              private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-              public:           raw.public_key_present? ? raw.public_key_data : nil,
-              activation_date:  activation_date,
-              metadata:         metadata,
-              primary_key_grip: metadata["primary key grip"],
-              grip:             metadata["grip"],
-              fingerprint:      metadata["fingerprint"],
-            }.reject { |_k, v| v.nil? }
-          end
-          private :creation_params
-
           # Generate a primary key and a corresponding subkey, and return the
           # primary key.
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
-          def generate_new_key(
-            email: Engine.config.uid_email_1,
-            creation_date: Time.now
-          )
-            rnp = Rnp.new
-            generated = rnp.generate_key(
+          def generate_new_key(email: Engine.config.uid_email_1, creation_date: Time.now)
+            generated = Rnp.new.generate_key(
               default_key_params(email: email, creation_date: creation_date),
             )
 
             key_records = %i[primary sub].map do |key_type|
               raw           = generated[key_type]
-              metadata      = raw.json
               creation_hash = creation_params(
-                raw: raw, activation_date: creation_date, metadata: metadata,
+                raw: raw, activation_date: creation_date, metadata: raw.json,
               )
 
               RK::Key::PGP.create(creation_hash)
             end
 
             key_records.first
-          rescue StandardError
-            warn $!.message
-            warn "error: #{$ERROR_INFO.pretty_inspect}"
-            warn "error message: #{$ERROR_INFO.message.pretty_inspect}"
           end
 
           # Return a GNUPG-compatible date format for key generation
@@ -376,30 +327,73 @@ module Rails
 
             # 1 year expiry as default
             expiry_date = creation_date + 1.year
-            # expiry_date = creation_date + 365 * 60 * 60 * 24
 
+            userid = "#{Engine.config.uid_name_1}#{email.present? ? " <#{email}>" : ''} #{Engine.config.uid_comment_1}".strip
+            key_params(userid: userid, expiration_date: date_format(expiry_date))
+          end
+
+          private
+
+          def key_params(expiration_date:, userid:)
             {
               primary: {
-                type: "RSA",
-                length: 4096,
-                userid: "#{Engine.config.uid_name_1}#{email.present? ? " <#{email}>" : ''} #{Engine.config.uid_comment_1}".strip,
-                usage: [:sign],
-                expiration: date_format(expiry_date),
+                type:       "RSA",
+                length:     4096,
+                userid:     userid,
+                usage:      [:sign],
+                expiration: expiration_date,
                 # These are the ruby-rnp defaults:
-                # preferences: { 'ciphers' => %w[AES256 AES192 AES128 TRIPLEDES],
-                #                'hashes' => %w[SHA256 SHA384 SHA512 SHA224 SHA1],
-                #                'compression' => %w[ZLIB BZip2 ZIP Uncompressed] },
-                preferences: { "ciphers" => %w[AES256 AES192 AES128 CAST5],
-                               "hashes" => %w[SHA512 SHA384 SHA256 SHA224],
+                # preferences: { "ciphers"     => %w[AES256 AES192 AES128 TRIPLEDES],
+                #                "hashes"      => %w[SHA256 SHA384 SHA512 SHA224 SHA1],
+                #                "compression" => %w[ZLIB BZip2 ZIP Uncompressed] },
+                preferences: { "ciphers"     => %w[AES256 AES192 AES128 CAST5],
+                               "hashes"      => %w[SHA512 SHA384 SHA256 SHA224],
                                "compression" => %w[ZLIB BZip2 ZIP Uncompressed] },
               },
               sub: {
-                type: "RSA",
+                type:   "RSA",
                 length: 4096,
-                usage: [:encrypt],
+                usage:  [:encrypt],
               },
             }
           end
+
+          # Expiration means the *duration*, not the actual point in
+          # time.
+          # Use +key_expiration_time(rnp_key)+ for that purpose.
+          def key_validity_seconds(rnp_key)
+            rnp_key.json["expiration"]
+          end
+
+          def key_creation_time(rnp_key)
+            Time.at(rnp_key.json["creation time"])
+          end
+
+          # +key_expiration_time+ is the actual point in time.
+          # NOTE: This is different from the terminology used in RFC4880.
+          # They use "expiration time" as the "validity period".
+          def key_expiration_time(rnp_key)
+            Time.at(key_creation_time(rnp_key) + key_validity_seconds(rnp_key))
+          end
+
+          def key_expired?(rnp_key)
+            key_expiration_time(rnp_key) != 0 &&
+              key_expiration_time(rnp_key) > Time.now
+          end
+
+          # Generate params for #create
+          def creation_params(raw:, activation_date:, metadata:)
+            {
+              private:          raw.secret_key_present? ? raw.secret_key_data : nil,
+              public:           raw.public_key_present? ? raw.public_key_data : nil,
+              activation_date:  activation_date,
+              metadata:         metadata,
+              primary_key_grip: metadata["primary key grip"],
+              grip:             metadata["grip"],
+              fingerprint:      metadata["fingerprint"],
+            }.reject { |_k, v| v.nil? }
+          end
+
         end
       end
     end
