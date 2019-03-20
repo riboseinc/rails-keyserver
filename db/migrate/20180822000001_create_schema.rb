@@ -8,6 +8,7 @@
 # External references should still remain fingerprint.
 #
 class CreateSchema < ActiveRecord::Migration[5.1]
+  require 'activeuuid'
   def up
 
     create_table :generic_key_owners, id: :uuid, force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" do |t|

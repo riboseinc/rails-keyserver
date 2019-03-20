@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 class GenericKeyOwner < ActiveRecord::Base
-  include ActiveUUID::Model
-  attribute :id, ActiveUUID::Type::BinaryUUID.new
+  include ActiveUUID::UUID
 
   # attr_accessor :type
   # def type

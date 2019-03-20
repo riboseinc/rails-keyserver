@@ -5,9 +5,7 @@ module Rails
     class Key < ApplicationRecord
       class EncryptionKeyNotFoundException < RuntimeError; end
 
-      include ActiveUUID::Model
-      attribute :id, ActiveUUID::Type::BinaryUUID.new
-      attribute :owner_id, ActiveUUID::Type::BinaryUUID.new
+      include ActiveUUID::UUID
 
       store :metadata, coder: JSON
 

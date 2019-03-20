@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "rails/keyserver/engine"
-require "active_uuid"
+require "activeuuid"
 require "pp"
 require "active_model_serializers"
 require "gpgme"
