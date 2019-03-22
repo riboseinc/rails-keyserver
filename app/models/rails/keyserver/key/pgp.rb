@@ -384,8 +384,8 @@ module Rails
           # Generate params for #create
           def creation_params(raw:, activation_date:, metadata:)
             {
-              private:          raw.secret_key_present? ? raw.secret_key_data : nil,
-              public:           raw.public_key_present? ? raw.public_key_data : nil,
+              private:          raw.secret_key_present? ? raw.export_secret : nil,
+              public:           raw.public_key_present? ? raw.export_public : nil,
               activation_date:  activation_date,
               metadata:         metadata,
               primary_key_grip: metadata["primary key grip"],
