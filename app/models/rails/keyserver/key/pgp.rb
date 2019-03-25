@@ -264,7 +264,7 @@ module Rails
           # primary key.
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
-          def generate_new_key(email: Engine.config.uid_email_1, creation_date: Time.now)
+          def generate_new_key(email:, creation_date: Time.now)
             generated = Rnp.new.generate_key(
               default_key_params(email: email, creation_date: creation_date),
             )

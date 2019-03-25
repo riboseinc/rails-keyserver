@@ -126,7 +126,6 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
     it "has a specific set of optional parameters" do
       %i[
-        email
         creation_date
       ].each do |p|
         expect(described_class.method(:generate_new_key).parameters).to include [:key, p]
