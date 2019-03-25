@@ -118,93 +118,111 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   end
 
   describe ".generate_new_key" do
-    it "has an arity of 2" do
+    it "has an arity of 5" do
       # .arity returns -1 for variable params
-      # expect(described_class.method(:generate_new_key).arity).to eq 2
-      expect(described_class.method(:generate_new_key).parameters.length).to eq 2
-    end
-
-    it "has a specific set of optional parameters" do
-      %i[
-        creation_date
-      ].each do |p|
-        expect(described_class.method(:generate_new_key).parameters).to include [:key, p]
-      end
-    end
-
-    subject { described_class.generate_new_key(email: "test") }
-
-    it { is_expected.to be_instance_of described_class }
-
-    it "changes number of keys stored by 2" do
-      expect do
-        described_class.generate_new_key(email: "test #{rand}")
-      end.to change { described_class.count }.by(2)
-    end
-
-    it "changes number of keys stored" do
-      email = "test #{rand}"
-      expect do
-        described_class.generate_new_key(email: email)
-      end.to change { described_class.all.map(&:grip).length }.by(2)
-    end
-
-    it 'increases the number of keys found in "userids"' do
-      email = "test #{rand}"
-      expect do
-        described_class.generate_new_key(email: email)
-      end.to change { described_class.all.map(&:metadata).map { |m| m["userids"] }.flatten.compact.uniq.length }.by(1)
-
-      expect do
-        described_class.generate_new_key(email: email)
-      end.to change { described_class.all.map(&:metadata).map { |m| m["userids"] }.flatten.compact.uniq.length }.by(0)
-    end
-
-    its(:public)  { is_expected.to start_with("-----BEGIN").and match(/BLOCK-----(?:\r\n)?\z/) }
-    its(:private) { is_expected.to start_with("-----BEGIN").and match(/BLOCK-----(?:\r\n)?\z/) }
-
-    xit 'increases the number of keys found in "keys_with_email"' do
-      email = "test #{rand}"
-
-      expect do
-        described_class.generate_new_key(email: email)
-      end.to change { described_class.keys_with_email(email).length }.by(1)
-
-      expect do
-        described_class.generate_new_key(email: email)
-      end.to change { described_class.keys_with_email(email).length }.by(0)
-    end
-  end
-
-  describe ".default_key_params" do
-    it "has an arity of 2" do
-      expect(described_class.method(:default_key_params).parameters.length).to eq 2
-    end
-
-    it "has a specific set of required parameters" do
-      %i[
-        creation_date
-      ].each do |p|
-        expect(described_class.method(:default_key_params).parameters).to include [:keyreq, p]
-      end
+      # expect(described_class.method(:generate_new_key).arity).to eq 5
+      expect(described_class.method(:generate_new_key).parameters.length).to eq 5
     end
 
     it "has a specific set of optional parameters" do
       %i[
         email
-      ].each do |p|
-        expect(described_class.method(:default_key_params).parameters).to include [:key, p]
+        comment
+        creation_date
+        key_validity_seconds
+      ].tap do |l|
+        param_spec = described_class.method(:generate_new_key).parameters.select do |a|
+          a.first == :key
+        end
+
+        expect(param_spec.length).to eq l.length
+      end.each do |p|
+        expect(described_class.method(:generate_new_key).parameters).to include [:key, p]
       end
     end
 
-    # it "has a specific set of required parameters" do
-    #   %i[
-    #     email
-    #     creation_date
-    #   ].each do |p|
-    #     expect(described_class.method(:default_key_params).parameters).to include [:keyreq, p]
-    #   end
-    # end
+    it "has a specific set of required parameters" do
+      %i[
+        name
+      ].tap do |l|
+        param_spec = described_class.method(:generate_new_key).parameters.select do |a|
+          a.first == :keyreq
+        end
+
+        expect(param_spec.length).to eq l.length
+      end.each do |p|
+        expect(described_class.method(:generate_new_key).parameters).to include [:keyreq, p]
+      end
+    end
+
+    let(:name) { "test name" }
+
+    subject { described_class.generate_new_key(name: name) }
+
+    it { is_expected.to be_instance_of described_class }
+
+    it "changes number of keys stored by 2" do
+      expect do
+        described_class.generate_new_key(name: "test #{rand}")
+      end.to change { described_class.count }.by(2)
+    end
+
+    it "changes number of keys stored" do
+      name = "test #{rand}"
+      expect do
+        described_class.generate_new_key(name: name)
+      end.to change { described_class.all.map(&:grip).length }.by(2)
+    end
+
+    it 'increases the number of keys found in "userids"' do
+      name = "test #{rand}"
+      expect do
+        described_class.generate_new_key(name: name)
+      end.to change { described_class.all.map(&:metadata).map { |m| m["userids"] }.flatten.compact.uniq.length }.by(1)
+
+      expect do
+        described_class.generate_new_key(name: name)
+      end.to change { described_class.all.map(&:metadata).map { |m| m["userids"] }.flatten.compact.uniq.length }.by(0)
+    end
+
+    its(:public)  { is_expected.to match(/^-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PUBLIC KEY BLOCK-----(?:\r\n)?\z/) }
+    its(:private) { is_expected.to match(/^-----BEGIN PGP PRIVATE KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PRIVATE KEY BLOCK-----(?:\r\n)?\z/) }
+
+    xit 'increases the number of keys found in "keys_with_email"' do
+      email = "test #{rand}"
+
+      expect do
+        described_class.generate_new_key(name: name)
+      end.to change { described_class.keys_with_email(email).length }.by(1)
+
+      expect do
+        described_class.generate_new_key(name: name)
+      end.to change { described_class.keys_with_email(email).length }.by(0)
+    end
+  end
+
+  describe ".default_key_params" do
+    it "has an arity of 5" do
+      expect(described_class.method(:default_key_params).parameters.length).to eq 5
+    end
+
+    it "has a specific set of optional parameters" do
+      %i[
+        name
+        email
+        comment
+        creation_date
+        key_validity_seconds
+      ].tap do |l|
+        param_spec = described_class.method(:default_key_params).parameters.select do |a|
+          a.first == :key
+        end
+
+        expect(param_spec.length).to eq l.length
+      end.each do |p|
+        expect(described_class.method(:default_key_params).parameters).to include [:key, p]
+      end
+    end
 
     context "when given nonsense as input" do
       it "raises errors" do
@@ -212,11 +230,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       end
     end
 
-    context "when given a good input" do
-      let(:result) do
-        described_class.default_key_params(creation_date: creation_date, email: "random")
-      end
-
+    shared_examples "when given a good input" do
       it "returns a Hash" do
         expect(result).to be_instance_of Hash
       end
@@ -243,19 +257,38 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       end
     end
 
+    let(:email)                {}
+    let(:name)                 {}
+    let(:comment)              {}
+    let(:creation_date)        { DateTime.now }
+    let(:key_validity_seconds) { 1.year }
+
     let(:result) do
-      if email.nil?
-        described_class.default_key_params(creation_date: creation_date)
-      else
-        described_class.default_key_params(creation_date: creation_date, email: email)
+      described_class.default_key_params(
+        name:                 name,
+        email:                email,
+        comment:              comment,
+        creation_date:        creation_date,
+        key_validity_seconds: key_validity_seconds,
+      )
+    end
+
+    %w[
+      Alpha
+      Beta
+      Gamma
+      Delta
+    ].each do |e|
+      context "with different names" do
+        let(:name) { e }
+
+        it "(#{e}) would contain it at the start" do
+          expect(result[:primary][:userid]).to match(/^#{e}/)
+        end
+
+        it_behaves_like "when given a good input"
       end
     end
-
-    let(:creation_date) do
-      DateTime.now
-    end
-
-    let(:email) {}
 
     %w[
       rando
@@ -263,12 +296,31 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       root@localhost.localdomain
       system@rails.com
     ].each do |e|
-      context "with different emails" do
+      context "with different emails within angled brackets" do
         let(:email) { e }
 
         it "(#{e}) would contain it" do
-          expect(result[:primary][:userid]).to match(/#{e}/)
+          expect(result[:primary][:userid]).to match(/<#{e}>/)
         end
+
+        it_behaves_like "when given a good input"
+      end
+    end
+
+    %w[
+      Alpha
+      Beta
+      Gamma
+      Delta
+    ].each do |e|
+      context "with different comments" do
+        let(:comment) { e }
+
+        it "(#{e}) would contain it at the end" do
+          expect(result[:primary][:userid]).to match(/#{e}\z/)
+        end
+
+        it_behaves_like "when given a good input"
       end
     end
 
@@ -278,25 +330,42 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       Time.now - 100.years,
       Time.now - 1337.months,
     ].each do |d|
-      context "with different creation_date (#{d})" do
-        let(:creation_date) { d }
-        let(:creation_date_int) { creation_date.to_i }
+      [
+        1.year,
+        1.second,
+        1.week,
+        1.month,
+        nil,
+      ].each do |valid_seconds|
+        context "with different creation_date (#{d})" do
+          let(:creation_date)        { d }
+          let(:creation_date_int)    { creation_date.to_i }
+          let(:key_validity_seconds) { valid_seconds }
 
-        it "would contain it (#{d.to_i})" do
-          pending "Rnp Key creation parameters do not support creation date time?"
-          expect(result[:primary][:creation_date]).to eq creation_date_int
-        end
+          it_behaves_like "when given a good input"
 
-        it "would contain a corresponding expiration time (#{(d + 1.year).to_i})" do
-          expect(result[:primary][:expiration]).to eq((creation_date + 1.year).to_i)
+          it "would contain it (#{d.to_i})" do
+            pending "Rnp Key creation parameters do not support creation date time?"
+            expect(result[:primary][:creation_date]).to eq creation_date_int
+          end
+
+          if valid_seconds.present?
+            it "would contain a corresponding expiration time (#{(d + valid_seconds).to_i})" do
+              expect(result[:primary][:expiration]).to eq((creation_date + valid_seconds).to_i)
+            end
+          else
+            it "would contain a non-expiring expiration time" do
+              expect(result[:primary][:expiration]).to be_nil
+            end
+          end
         end
       end
     end
 
     %i[
-      uid_email_1
-      uid_name_1
-      uid_comment_1
+      email
+      name
+      comment
     ].each do |param_name|
       [
         "sdflkj",
@@ -306,9 +375,9 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       ].each do |value|
 
         context "with a different #{param_name} (#{value})" do
-          before do
-            Rails::Keyserver::Engine.config.send("#{param_name}=", value)
-          end
+          let(param_name) { value }
+
+          it_behaves_like "when given a good input"
 
           it "contains it in the :primary.:userid" do
             expect(result[:primary][:userid]).to match(/#{value}/)
@@ -393,7 +462,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     let(:email) { key.email }
 
     let(:result) do
-      described_class.generate_new_key(email: email)
+      described_class.generate_new_key(name: name, email: email)
       described_class.get_generated_key(email: email)[:secret]
     end
 
@@ -502,8 +571,9 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       end
 
       it "appears in .userids" do
+        email = "sample@example.com"
         generated_keys = described_class.generate_new_key(
-          email: Engine.config.uid_email_1,
+          email: email,
         )
         key_grip = generated_keys[:primary].json["grip"]
 
@@ -516,7 +586,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
         set1 = measurement.call
         described_class.add_uid_to_key(
-          target_email: Engine.config.uid_email_1,
+          target_email: email,
           userid: additional_userid,
         )
         set2 = measurement.call

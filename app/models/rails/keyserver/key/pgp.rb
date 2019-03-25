@@ -14,14 +14,6 @@ module Rails
         # TODO: These defaults belong in somewhere else?
         Engine.config.key_host = nil
 
-        Engine.config.uid_email_1   = "notifications-noreply@example.com"
-        Engine.config.uid_name_1    = "Rails Notifications"
-        Engine.config.uid_comment_1 = "for system notifications"
-
-        Engine.config.uid_email_2   = "security.team@example.com"
-        Engine.config.uid_name_2    = "Rails Security"
-        Engine.config.uid_comment_2 = "for security advisories"
-
         def url
           RK::Engine.routes.url_helpers.api_v1_key_url(
             "#{fingerprint}.#{RK::Key::PGP.extension}",
@@ -264,21 +256,20 @@ module Rails
           # primary key.
           # URL:
           # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
-          def generate_new_key(email:, creation_date: Time.now)
-            generated = Rnp.new.generate_key(
-              default_key_params(email: email, creation_date: creation_date),
-            )
-
-            key_records = %i[primary sub].map do |key_type|
-              raw           = generated[key_type]
-              creation_hash = creation_params(
-                raw: raw, activation_date: creation_date, metadata: raw.json,
-              )
-
-              RK::Key::PGP.create(creation_hash)
-            end
-
-            key_records.first
+          def generate_new_key(
+            name:,
+            email: "",
+            comment: "",
+            creation_date: Time.now,
+            key_validity_seconds: 1.year
+          )
+            generate_new_keys(
+              name:                 name,
+              email:                email,
+              comment:              comment,
+              creation_date:        creation_date,
+              key_validity_seconds: key_validity_seconds,
+            ).first
           end
 
           # Return a GNUPG-compatible date format for key generation
@@ -309,6 +300,10 @@ module Rails
             datetime.to_i
           end
 
+          # Return a hash suitable to be passed to #generate_new_key.
+          #
+          # 1 year expiry as default
+          #
           # Options available in the GPG Manual:
           # https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html#Unattended-GPG-key-generation
           # Note: in Key-Usage "cert" is always enabled and not specified
@@ -318,21 +313,61 @@ module Rails
           # - primary key is for SC (sign, certify)
           # - subkey is for E (encrypton)
           # NOTE: creation_date has to be a +DateTime+/+Time+/+Date+
-          def default_key_params(email: Engine.config.uid_email_1, creation_date:)
+          def default_key_params(
+            name: "",
+            email: nil,
+            comment: "",
+            creation_date: Time.now,
+            key_validity_seconds: 1.year
+          )
             case creation_date
             when DateTime, Time, Date then creation_date
             else raise ArgumentError,
                        "creation_date: has to be a DateTime/Time/Date"
             end
 
-            # 1 year expiry as default
-            expiry_date = creation_date + 1.year
 
-            userid = "#{Engine.config.uid_name_1}#{email.present? ? " <#{email}>" : ''} #{Engine.config.uid_comment_1}".strip
-            key_params(userid: userid, expiration_date: date_format(expiry_date))
+            expiration_date = if key_validity_seconds.present?
+                                date_format(creation_date + key_validity_seconds)
+                              end
+
+            userid = "#{name}#{email.present? ? " <#{email}>" : ''} #{comment}".strip
+            key_params(userid: userid, expiration_date: expiration_date)
           end
 
           private
+
+          # Generate a primary key and a corresponding subkey.
+          # URL:
+          # http://security.stackexchange.com/questions/31594/what-is-a-good-general-purpose-gnupg-key-setup
+          def generate_new_keys(
+            name:,
+            email: "",
+            comment: "",
+            creation_date: Time.now,
+            key_validity_seconds: 1.year
+          )
+
+            generated =
+              Rnp.new.generate_key(
+                default_key_params(
+                  name:                 name,
+                  email:                email,
+                  comment:              comment,
+                  creation_date:        creation_date,
+                  key_validity_seconds: key_validity_seconds,
+                ),
+              )
+
+            %i[primary sub].map do |key_type|
+              raw           = generated[key_type]
+              creation_hash = creation_params(
+                raw: raw, activation_date: creation_date, metadata: raw.json,
+              )
+
+              RK::Key::PGP.create(creation_hash)
+            end
+          end
 
           def key_params(expiration_date:, userid:)
             {
