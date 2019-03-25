@@ -331,7 +331,7 @@ module Rails
                                 date_format(creation_date + key_validity_seconds)
                               end
 
-            userid = "#{name}#{email.present? ? " <#{email}>" : ''} #{comment}".strip
+            userid = "#{name}#{comment.present? ? " (#{comment})" : ''}#{email.present? ? " <#{email}>" : ''}".strip
             key_params(userid: userid, expiration_date: expiration_date)
           end
 

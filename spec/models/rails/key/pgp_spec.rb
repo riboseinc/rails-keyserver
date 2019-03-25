@@ -316,8 +316,8 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       context "with different comments" do
         let(:comment) { e }
 
-        it "(#{e}) would contain it at the end" do
-          expect(result[:primary][:userid]).to match(/#{e}\z/)
+        it "(#{e}) would contain it within parentheses" do
+          expect(result[:primary][:userid]).to match(/(#{e})/)
         end
 
         it_behaves_like "when given a good input"
