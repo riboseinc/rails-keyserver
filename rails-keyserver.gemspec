@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "active_model_serializers"
   spec.add_dependency "attr_encrypted"
   spec.add_dependency "gpgme"
-  spec.add_dependency "mysql2", "~> 0.3.21"
+  spec.add_dependency "mysql2", "~> 0.5"
   spec.add_dependency "rails", "~> 5.1.6"
   spec.add_dependency "rake"
   spec.add_development_dependency "sqlite3"
