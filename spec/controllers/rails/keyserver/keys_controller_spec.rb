@@ -128,9 +128,7 @@ module Rails::Keyserver::Api::V1
           end
 
           it "returns an ASCII-armoured public key" do
-            pending "implementation in ruby-rnp"
-            expect(response.body).to match(/\A-----BEGIN PGP PUBLIC KEY BLOCK-----/)
-            expect(response.body).to match(/-----END PGP PUBLIC KEY BLOCK-----(?:\n)?\z/)
+            expect(response.body).to match(/\A-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n/).and match(/-----END PGP PUBLIC KEY BLOCK-----(?:\r\n)?\z/)
           end
 
           it "returns the exact public key" do

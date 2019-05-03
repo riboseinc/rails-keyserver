@@ -191,8 +191,8 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
       end.to change { described_class.all.map(&:metadata).map { |m| m["userids"] }.flatten.compact.uniq.length }.by(0)
     end
 
-    its(:public)  { is_expected.to match(/^-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PUBLIC KEY BLOCK-----(?:\r\n)?\z/) }
-    its(:private) { is_expected.to match(/^-----BEGIN PGP PRIVATE KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PRIVATE KEY BLOCK-----(?:\r\n)?\z/) }
+    its(:public)  { is_expected.to match(/\A-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PUBLIC KEY BLOCK-----(?:\r\n)?\z/) }
+    its(:private) { is_expected.to match(/\A-----BEGIN PGP PRIVATE KEY BLOCK-----\r\n/).and match(/\r\n-----END PGP PRIVATE KEY BLOCK-----(?:\r\n)?\z/) }
 
     xit 'increases the number of keys found in "keys_with_email"' do
       email = "test #{rand}"
