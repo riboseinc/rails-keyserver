@@ -142,6 +142,7 @@ module Rails
         # Else, return nil? empty collection?
         def subkeys
           return self.class.none unless primary?
+
           self.class.where(primary_key_grip: grip)
         end
 
@@ -207,7 +208,6 @@ module Rails
         end
 
         class << self
-
           # TODO: spec it
           def build_rnp_and_load_keys(homedir = Rnp.default_homedir)
             homedir_info = ::Rnp.homedir_info(homedir)
@@ -228,8 +228,8 @@ module Rails
           def load_key_string(key_string)
             Rnp.new.tap do |rnp|
               rnp.load_keys(
-                format: "GPG",
-                input: Rnp::Input.from_string(key_string),
+                format:      "GPG",
+                input:       Rnp::Input.from_string(key_string),
                 public_keys: true,
                 secret_keys: true,
               )
@@ -326,7 +326,6 @@ module Rails
                        "creation_date: has to be a DateTime/Time/Date"
             end
 
-
             expiration_date = if key_validity_seconds.present?
                                 date_format(creation_date + key_validity_seconds)
                               end
@@ -372,20 +371,20 @@ module Rails
           def key_params(expiration_date:, userid:)
             {
               primary: {
-                type:       "RSA",
-                length:     4096,
-                userid:     userid,
-                usage:      [:sign],
-                expiration: expiration_date,
+                type:        "RSA",
+                length:      4096,
+                userid:      userid,
+                usage:       [:sign],
+                expiration:  expiration_date,
                 # These are the ruby-rnp defaults:
                 # preferences: { "ciphers"     => %w[AES256 AES192 AES128 TRIPLEDES],
                 #                "hashes"      => %w[SHA256 SHA384 SHA512 SHA224 SHA1],
                 #                "compression" => %w[ZLIB BZip2 ZIP Uncompressed] },
-                preferences: { "ciphers"     => %w[AES256 AES192 AES128 CAST5],
-                               "hashes"      => %w[SHA512 SHA384 SHA256 SHA224],
+                preferences: { "ciphers" => %w[AES256 AES192 AES128 CAST5],
+                               "hashes" => %w[SHA512 SHA384 SHA256 SHA224],
                                "compression" => %w[ZLIB BZip2 ZIP Uncompressed] },
               },
-              sub: {
+              sub:     {
                 type:   "RSA",
                 length: 4096,
                 usage:  [:encrypt],
@@ -428,7 +427,6 @@ module Rails
               fingerprint:      metadata["fingerprint"],
             }.reject { |_k, v| v.nil? }
           end
-
         end
       end
     end

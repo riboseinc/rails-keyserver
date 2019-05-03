@@ -13,8 +13,8 @@ Rails::Keyserver::Engine.routes.draw do
         # segments via substitution in the URL path.
         #
         resources :keys,
-          param: :fingerprint,
-          only: %i[index show],
+          param:    :fingerprint,
+          only:     %i[index show],
           defaults: { type: "Rails::Keyserver::Key::PGP" }
       end
 

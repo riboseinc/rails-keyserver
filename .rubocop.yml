@@ -6,3 +6,6 @@ AllCops:
   DisplayCopNames: false
   StyleGuideCopsOnly: false
   TargetRubyVersion: 2.3
+
+Layout/AlignHash:
+  EnforcedColonStyle: table

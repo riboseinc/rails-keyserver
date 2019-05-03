@@ -1,115 +1,121 @@
 # frozen_string_literal: true
 
 RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
-  let(:pub_key_path_1) { "spec/data/gpg/spec.pub" }
-  let(:pub_key_string_1) { File.read pub_key_path_1 }
+  shared_context "with an imported key fixture" do
+    let(:pub_key_path_1) { "spec/data/gpg/spec.pub" }
+    let(:pub_key_string_1) { File.read pub_key_path_1 }
 
-  let(:pri_key_path_1) { "spec/data/gpg/spec.pri" }
-  let(:pri_key_string_1) { File.read pri_key_path_1 }
+    let(:pri_key_path_1) { "spec/data/gpg/spec.pri" }
+    let(:pri_key_string_1) { File.read pri_key_path_1 }
 
-  let(:key_string) { pub_key_string_1 } # override
-  let(:keys) do
-    # FactoryBot.create :rails_keyserver_key_pgp
-    described_class.import_key_string key_string
+    let(:key_string) { pub_key_string_1 } # override
+    let(:imported_keys) do
+      # FactoryBot.create :rails_keyserver_key_pgp
+      described_class.import_key_string key_string
+    end
+
+    let(:key) { imported_keys.first }
   end
 
-  let(:key) { keys.first }
+  context "with an imported key fixture" do
+    include_context "with an imported key fixture"
 
-  describe ".import_key_string" do
-    # let(:key) do
-    #   FactoryBot.create :rails_keyserver_key_pgp
-    # end
+    describe ".import_key_string" do
+      # let(:key) do
+      #   FactoryBot.create :rails_keyserver_key_pgp
+      # end
 
-    context "when key is created by GPGME" do
-      let(:key_string) { pub_key_string_1 }
-      # let(:keypart_to_be_tested) {} # key.private / key.public
-
-      shared_examples_for "all key parts" do
-        it "imports without errors" do
-          expect { keys }.to_not raise_error
-        end
-
-        context "after importing" do
-          before do
-            keys
-          end
-
-          let(:first_imported_key) { keys.first }
-          # XXX: What about:
-          # let(:key_found_from_imported_keys) { keys.first }
-
-          context "the internal rnp instance" do
-            it "contains 2 keys" do
-              expect(keys.length).to eq 2
-            end
-
-            it "contains a key with matching fingerprint" do
-              expect(keys.first.fingerprint).to eq first_imported_key.fingerprint
-            end
-
-            it "contains a key with matching grip" do
-              expect(keys.first.grip).to eq first_imported_key.grip
-            end
-
-            it "contains a key with matching keyid" do
-              expect(keys.first.key_id).to eq first_imported_key.key_id
-            end
-
-            it "contains a key with matching userids" do
-              expect(keys.first.userids).to eq first_imported_key.userids
-            end
-          end
-
-          # TODO: why has secret but no public?
-          xit "retains the public part" do
-            pp "spec: keys.first"
-            # pp keys.first
-            # pp "spec: keys.first.json"
-            # pp keys.first.json
-            pp "spec: keys.first.public"
-            pp keys.first.public[0..40]
-            expect(keys.first.public).to_not be_nil
-          end
-        end
-      end
-
-      context "for public key" do
+      context "when key is created by GPGME" do
         let(:key_string) { pub_key_string_1 }
-        let(:keypart_to_be_tested) { key.public }
+        # let(:keypart_to_be_tested) {} # key.private / key.public
 
-        it_behaves_like "all key parts"
-
-        context do
-          before do
-            keys
+        shared_examples_for "all key parts" do
+          it "imports without errors" do
+            expect { imported_keys }.to_not raise_error
           end
 
-          it "does not contain the secret part" do
-            keys.each do |k|
-              expect(k.private).to be_nil
+          context "after importing" do
+            before do
+              imported_keys
+            end
+
+            let(:first_imported_key) { imported_keys.first }
+            # XXX: What about:
+            # let(:key_found_from_imported_keys) { imported_keys.first }
+
+            context "the internal rnp instance" do
+              it "contains 2 keys" do
+                expect(imported_keys.length).to eq 2
+              end
+
+              it "contains a key with matching fingerprint" do
+                expect(imported_keys.first.fingerprint).to eq first_imported_key.fingerprint
+              end
+
+              it "contains a key with matching grip" do
+                expect(imported_keys.first.grip).to eq first_imported_key.grip
+              end
+
+              it "contains a key with matching keyid" do
+                expect(imported_keys.first.key_id).to eq first_imported_key.key_id
+              end
+
+              it "contains a key with matching userids" do
+                expect(imported_keys.first.userids).to eq first_imported_key.userids
+              end
+            end
+
+            # TODO: why has secret but no public?
+            xit "retains the public part" do
+              pp "spec: imported_keys.first"
+              # pp imported_keys.first
+              # pp "spec: imported_keys.first.json"
+              # pp imported_keys.first.json
+              pp "spec: imported_keys.first.public"
+              pp imported_keys.first.public[0..40]
+              expect(imported_keys.first.public).to_not be_nil
             end
           end
         end
-      end
 
-      context "for private key" do
-        let(:key_string) { pri_key_string_1 }
-        let(:keypart_to_be_tested) { key.private }
+        context "for public key" do
+          let(:key_string) { pub_key_string_1 }
+          let(:keypart_to_be_tested) { key.public }
 
-        before do
-          expect(keypart_to_be_tested).to_not be_nil
+          it_behaves_like "all key parts"
+
+          context do
+            before do
+              imported_keys
+            end
+
+            it "does not contain the secret part" do
+              imported_keys.each do |k|
+                expect(k.private).to be_nil
+              end
+            end
+          end
         end
 
-        it_behaves_like "all key parts"
+        context "for private key" do
+          let(:key_string) { pri_key_string_1 }
+          let(:keypart_to_be_tested) { key.private }
 
-        context do
           before do
-            keys
+            expect(keypart_to_be_tested).to_not be_nil
           end
 
-          it "retains the secret part" do
-            keys.each do |k|
-              expect(k).to have_private
+          it_behaves_like "all key parts"
+
+          context do
+            before do
+              imported_keys
+            end
+
+            it "retains the secret part" do
+              imported_keys.each do |k|
+                expect(k).to have_private
+              end
             end
           end
         end
@@ -554,7 +560,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         pending "It currently doesn't check for email address syntax"
         expect do
           described_class.add_uid_to_key(
-            userid: "Example Addition #{rand} <valid@example.com>",
+            userid:       "Example Addition #{rand} <valid@example.com>",
             target_email: "random",
           )
         end.to raise_error TypeError
@@ -587,7 +593,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         set1 = measurement.call
         described_class.add_uid_to_key(
           target_email: email,
-          userid: additional_userid,
+          userid:       additional_userid,
         )
         set2 = measurement.call
 
@@ -599,110 +605,162 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
   end
 
   describe "#expires?" do
-    it "is either true or false" do
-      expect(key.expires?).to eq(true).or(eq(false))
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is either true or false" do
+        expect(key.expires?).to eq(true).or(eq(false))
+      end
     end
   end
 
   describe "#expired?" do
-    it "is either true or false" do
-      expect(key.expired?).to eq(true).or(eq(false))
-    end
+    context "for an imported key" do
+      include_context "with an imported key fixture"
 
-    context "for an expired key" do
-      let(:key_string) { File.read "spec/data/gpg/expired.pub" }
-      it "is true" do
-        expect(key).to be_expired
+      it "is either true or false" do
+        expect(key.expired?).to eq(true).or(eq(false))
+      end
+
+      context "for an expired key" do
+        let(:key_string) { File.read "spec/data/gpg/expired.pub" }
+        it "is true" do
+          expect(key).to be_expired
+        end
       end
     end
   end
 
   describe "#expiry_date" do
-    it "is nil if it does not expire" do
-      expect(key.expiry_date).to be_nil
-    end
+    context "for an imported key" do
+      include_context "with an imported key fixture"
 
-    context "when key expires" do
-      before do
-        allow(key).to receive(:expires?).and_return(true)
-        allow(key).to receive(:metadata).and_return(
-          key.metadata.merge("expiration time" => 123456),
-        )
+      it "is nil if it does not expire" do
+        expect(key.expiry_date).to be_nil
       end
 
-      it "is not blank" do
-        expect(key.expiry_date).to_not be_blank
+      context "when key expires" do
+        before do
+          allow(key).to receive(:expires?).and_return(true)
+          allow(key).to receive(:metadata).and_return(
+            key.metadata.merge("expiration time" => 123456),
+          )
+        end
+
+        it "is not blank" do
+          expect(key.expiry_date).to_not be_blank
+        end
       end
     end
   end
 
   describe "#fingerprint" do
-    it "is not blank" do
-      expect(key.fingerprint).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.fingerprint).to_not be_blank
+      end
     end
   end
 
   describe "#generation_date" do
-    it "is not blank" do
-      expect(key.generation_date).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.generation_date).to_not be_blank
+      end
     end
   end
 
   describe "#key_id" do
-    it "is not blank" do
-      expect(key.key_id).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.key_id).to_not be_blank
+      end
     end
   end
 
   describe "#key_size" do
-    it "is not blank" do
-      expect(key.key_size).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.key_size).to_not be_blank
+      end
     end
   end
 
   describe "#key_type" do
-    it "is not blank" do
-      expect(key.key_type).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.key_type).to_not be_blank
+      end
     end
   end
 
   describe "#public=" do
-    [
-      "f" * 32,
-      "hello!",
-      "😎👋🏾👩‍👧‍👦🐩🐉🍠" * 2000,
-    ].each do |rval|
+    context "for an imported key" do
+      include_context "with an imported key fixture"
 
-      it "sets #public to (#{rval.truncate(20)})" do
-        expect { key.public = rval }.to change { key.public }.to rval
+      [
+        "f" * 32,
+        "hello!",
+        "😎👋🏾👩‍👧‍👦🐩🐉🍠" * 2000,
+      ].each do |rval|
+
+        it "sets #public to (#{rval.truncate(20)})" do
+          expect { key.public = rval }.to change { key.public }.to rval
+        end
       end
     end
   end
 
   describe "#userid" do
-    it "is not blank" do
-      expect(key.userid).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.userid).to_not be_blank
+      end
     end
   end
 
   describe "#userids" do
-    it "is not blank" do
-      expect(key.userids).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.userids).to_not be_blank
+      end
     end
   end
 
   describe "#email" do
-    it "is not blank" do
-      expect(key.email).to_not be_blank
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is not blank" do
+        expect(key.email).to_not be_blank
+      end
     end
   end
 
   describe "#url" do
-    it "is the full url to the public key itself" do
-      # XXX: url_helpers demand a host: but can't be realistically set!
-      # URL: https://github.com/rspec/rspec-rails/issues/1275
-      # expect(key.url).to eq RK::Engine.routes.url_helpers.api_v1_key_url "#{key.fingerprint}.asc"
-      expect(key.url).to eq "http://localhost/ks/api/v1/pgp/keys/#{key.fingerprint}.asc"
+    context "for an imported key" do
+      include_context "with an imported key fixture"
+
+      it "is the full url to the public key itself" do
+        # XXX: url_helpers demand a host: but can't be realistically set!
+        # URL: https://github.com/rspec/rspec-rails/issues/1275
+        # expect(key.url).to eq RK::Engine.routes.url_helpers.api_v1_key_url "#{key.fingerprint}.asc"
+        expect(key.url).to eq "http://localhost/ks/api/v1/pgp/keys/#{key.fingerprint}.asc"
+      end
     end
   end
 

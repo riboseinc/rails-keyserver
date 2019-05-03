@@ -139,10 +139,12 @@ module Rails::Keyserver::Api::V1
 
           context "for an expired key" do
             let(:expired_key_path_1) do
+              # rubocop:disable Rails/DynamicFindBy
               File.join(
                 Gem::Specification.find_by_name("rails-keyserver").full_gem_path,
                 "spec/data/gpg/expired.pub",
               )
+              # rubocop:enable Rails/DynamicFindBy
             end
             let(:key_string) { File.read expired_key_path_1 }
 
@@ -487,7 +489,7 @@ module Rails::Keyserver::Api::V1
           let(:filter_params) do
             {
               date_from: date_from,
-              date_to: date_to,
+              date_to:   date_to,
             }
           end
 
@@ -507,7 +509,7 @@ module Rails::Keyserver::Api::V1
             let(:filter_params) do
               {
                 date_from: date_to,
-                date_to: date_from,
+                date_to:   date_from,
               }
             end
 
