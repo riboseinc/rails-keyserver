@@ -1,6 +1,25 @@
 # frozen_string_literal: true
 
 RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
+  shared_context "with a freshly generated key" do
+    let(:name) {}
+    let(:email) {}
+    let(:comment) {}
+    let(:key_validity_seconds) { 1.year }
+
+    let(:generated_key) do
+      # FactoryBot.create :rails_keyserver_key_pgp
+      described_class.generate_new_key(
+        name:                 name,
+        email:                email,
+        comment:              comment,
+        key_validity_seconds: key_validity_seconds,
+      )
+    end
+
+    let(:key) { generated_key }
+  end
+
   shared_context "with an imported key fixture" do
     let(:pub_key_path_1) { "spec/data/gpg/spec.pub" }
     let(:pub_key_string_1) { File.read pub_key_path_1 }
@@ -612,6 +631,10 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         expect(key.expires?).to eq(true).or(eq(false))
       end
     end
+
+    context "for a generated key" do
+      include_context "with a freshly generated key"
+    end
   end
 
   describe "#expired?" do
@@ -627,6 +650,14 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         it "is true" do
           expect(key).to be_expired
         end
+      end
+    end
+
+    context "for a generated key" do
+      include_context "with a freshly generated key"
+
+      it "is either true or false" do
+        expect(key.expired?).to eq(true).or(eq(false))
       end
     end
   end
@@ -747,6 +778,20 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
 
       it "is not blank" do
         expect(key.email).to_not be_blank
+      end
+    end
+
+    context "for a generated key" do
+      include_context "with a freshly generated key"
+
+      context "when :email = empty" do
+        let(:name) { "hahatest" }
+        let(:email) { "" }
+        let(:comment) { "This is s a comment" }
+
+        it "is blank" do
+          expect(key.email).to be_blank
+        end
       end
     end
   end

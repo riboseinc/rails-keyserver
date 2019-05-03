@@ -131,7 +131,7 @@ module Rails
 
         # TODO? same question as above
         def email
-          userid.match(/<(.*@.*)>/)[1] if userid
+          userid.try(:match, / <(.*@.*)>/).try(:[], 1)
         end
 
         def first?
