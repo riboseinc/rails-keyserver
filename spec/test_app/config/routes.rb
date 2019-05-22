@@ -1,3 +1,3 @@
 Rails.application.routes.draw do
-  mount Rails::Keyserver::Engine => "/ks"
+  mount_keyserver at: "ks"
 end

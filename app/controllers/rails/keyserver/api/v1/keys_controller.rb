@@ -23,14 +23,6 @@ module Rails
           end
 
           def index
-            # :activated overrides the other parameters
-            if params[:activated]
-              @composed = @composed.activated
-            else
-              @composed = @composed.date_from(params[:date_from]) if params[:date_from]
-              @composed = @composed.date_to params[:date_to] if params[:date_to]
-            end
-
             render json: @composed.all
           end
 

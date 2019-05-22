@@ -134,10 +134,6 @@ module Rails
           userid.try(:match, / <(.*@.*)>/).try(:[], 1)
         end
 
-        def first?
-          self.class.activated.first.id == id
-        end
-
         # Return collection of subkeys if +self+ is a primary key.
         # Else, return nil? empty collection?
         def subkeys
@@ -157,14 +153,6 @@ module Rails
         def has_private?
           !private.nil?
         end
-
-        def active?
-          !expires? ||
-            first? &&
-              expiry_date > Time.now &&
-              Time.now > activation_date
-        end
-        alias active active?
 
         # TODO: make it private.?
         # Internal(?) method to serialize DB key record back to an Rnp key object.

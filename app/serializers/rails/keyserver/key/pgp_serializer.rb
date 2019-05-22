@@ -3,7 +3,6 @@ module Rails
     class Key
       class PGPSerializer < KeySerializer
         attributes(
-          :active,
           :email,
           :expiry_date,
           :fingerprint,

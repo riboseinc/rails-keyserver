@@ -71,12 +71,6 @@ module Rails
         not fresh
       }
 
-      # Get the (one?) key that is activated right now
-      scope :activated, ->(now = Time.now) {
-        # ad = arel_table[:activation_date]
-        date_to(now).order(activation_date: :desc).limit 1
-      }
-
       # Use at least Long Key IDs (at least 64 bits)
       # URL:
       # http://security.stackexchange.com/questions/84280/short-openpgp-key-ids-are-insecure-how-to-configure-gnupg-to-use-long-key-ids-i

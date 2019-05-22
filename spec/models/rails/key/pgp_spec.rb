@@ -804,7 +804,7 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
         # XXX: url_helpers demand a host: but can't be realistically set!
         # URL: https://github.com/rspec/rspec-rails/issues/1275
         # expect(key.url).to eq RK::Engine.routes.url_helpers.api_v1_key_url "#{key.fingerprint}.asc"
-        expect(key.url).to eq "http://localhost/ks/api/v1/pgp/keys/#{key.fingerprint}.asc"
+        expect(key.url).to eq "http://localhost/api/v1/pgp/keys/#{key.fingerprint}.asc"
       end
     end
   end

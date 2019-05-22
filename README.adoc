@@ -45,7 +45,7 @@ endpoints:
 
 [source]
 ----
-# GET JSON 
+# GET JSON
 # /security/pgp_keys?date_from=X&date_to=Y&purpose=mail&sort_by=activation_date&order=desc
 [
   {
@@ -59,18 +59,6 @@ endpoints:
     activation_date: '2055/12/12 11:23:45Z+08:00',
   }
 ]
-
-# GET JSON /security/pgp_key&active=1
-{
-  public: '===== BEGIN PGP BLOCK ==========.....',
-  key_id: 0x346cb446
-  key_type: rsa
-  expires: '2055/12/12 11:23:45Z+08:00'
-  key_size: 4096/4096
-  fingerprint: 72e5 f8ae da12 7b85 fadb 25a5 83a3 ef8c 346c b447
-  userid: apple product security
-  activation_date: '2055/12/12 11:23:45Z+08:00',
-}
 
 # GET JSON /security/pgp_keys
 [
