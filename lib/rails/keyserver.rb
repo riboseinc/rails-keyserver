@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rails/keyserver/engine"
+require "rails/keyserver/routes"
 require "activeuuid"
 require "pp"
 require "active_model_serializers"
