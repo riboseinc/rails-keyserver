@@ -189,7 +189,6 @@ RSpec.describe Rails::Keyserver::Api::V1::KeysController, type: :controller do
           key_id
           key_size
           key_type
-          url
           userid
         ]
 
@@ -411,7 +410,6 @@ RSpec.describe Rails::Keyserver::Api::V1::KeysController, type: :controller do
             key_id
             key_size
             key_type
-            url
             userid
           ]
 

@@ -796,19 +796,6 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
   end
 
-  describe "#url" do
-    context "for an imported key" do
-      include_context "with an imported key fixture"
-
-      it "is the full url to the public key itself" do
-        # XXX: url_helpers demand a host: but can't be realistically set!
-        # URL: https://github.com/rspec/rspec-rails/issues/1275
-        # expect(key.url).to eq RK::Engine.routes.url_helpers.api_v1_key_url "#{key.fingerprint}.asc"
-        expect(key.url).to eq "http://localhost/api/v1/pgp/keys/#{key.fingerprint}.asc"
-      end
-    end
-  end
-
   # - wrong key
   #
   # …

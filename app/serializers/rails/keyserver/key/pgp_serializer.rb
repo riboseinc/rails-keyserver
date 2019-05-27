@@ -10,7 +10,6 @@ module Rails
           :key_id,
           :key_size,
           :key_type,
-          :url,
           :userid,
         )
       end

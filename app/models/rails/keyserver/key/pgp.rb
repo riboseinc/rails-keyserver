@@ -14,13 +14,6 @@ module Rails
         # TODO: These defaults belong in somewhere else?
         Engine.config.key_host = nil
 
-        def url
-          RK::Engine.routes.url_helpers.api_v1_key_url(
-            "#{fingerprint}.#{RK::Key::PGP.extension}",
-            host: Engine.config.key_host || "localhost",
-          )
-        end
-
         def derive_metadata_if_empty
           derive_metadata if metadata.empty?
         end
