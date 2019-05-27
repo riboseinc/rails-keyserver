@@ -23,7 +23,7 @@ module Rails
           end
 
           def index
-            render json: @composed.all
+            render_index
           end
 
           def show
@@ -40,16 +40,30 @@ module Rails
 
             respond_to do |format|
               format.json do
-                render json: key
+                render_show_json(key)
               end
 
               # If .pub requested, send key.public as an attachment.
               format.send(RK::Key::PGP.extension) do
-                render_options = {}
-                render_options[:"#{RK::Key::PGP.extension}"] = key
-                render render_options
+                render_show_ext(key)
               end
             end
+          end
+
+          protected
+
+          def render_index
+            render json: @composed.all
+          end
+
+          def render_show_json(key)
+            render json: key
+          end
+
+          def render_show_ext(key)
+            render_options = {}
+            render_options[:"#{RK::Key::PGP.extension}"] = key
+            render render_options
           end
         end
       end

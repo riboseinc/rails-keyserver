@@ -11,10 +11,6 @@ image:https://img.shields.io/codeclimate/maintainability/riboseinc/rails-keyserv
 
 A generic Rails engine for serving most kinds of keys.
 
-== Usage
-
-How to use my plugin.
-
 == Installation
 
 Add this line to your application’s Gemfile:
@@ -102,6 +98,27 @@ endpoints:
   errors: {
     permission: 'denied'
   }
+}
+----
+
+== Usage
+
+=== Override controllers and rendering methods
+
+==== Keys Controller
+
+* `#render_index`
+** `@composed` is the collection to render
+* `#render_show_json(key)`
+* `#render_show_ext(key)`
+
+==== Default settings for mounted routes
+
+[source,ruby]
+----
+# E.g. in config/routes.rb
+mount_keyserver at: 'ks', controllers: {
+  keys: 'rails/keyserver/api/v1/keys',
 }
 ----
 
