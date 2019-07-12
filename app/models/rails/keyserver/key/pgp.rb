@@ -15,7 +15,7 @@ module Rails
         Engine.config.key_host = nil
 
         def derive_metadata_if_empty
-          derive_metadata if metadata.empty?
+          derive_metadata if metadata.blank?
         end
 
         # Pick the one without primar key grip.

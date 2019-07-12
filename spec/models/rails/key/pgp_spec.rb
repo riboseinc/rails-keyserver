@@ -796,6 +796,23 @@ RSpec.describe Rails::Keyserver::Key::PGP, type: :model do
     end
   end
 
+  describe "#derive_metadata_if_empty" do
+    context "with nil metadata" do
+      let(:key) do
+        FactoryBot.build(:rails_keyserver_key_pgp).tap do |k|
+          allow(k).to receive(:metadata).and_return(nil)
+          allow(k).to receive(:derive_metadata)
+          expect(k.metadata).to be_nil
+        end
+      end
+
+      it "runs #derive_metadata_if_empty" do
+        expect(key).to receive :derive_metadata
+        key.derive_metadata_if_empty
+      end
+    end
+  end
+
   # - wrong key
   #
   # …
