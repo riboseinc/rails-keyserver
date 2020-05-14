@@ -49,7 +49,8 @@ group :test do
 end
 
 # gem "graphql"
-gem "activeuuid", github: "riboseinc/activeuuid", ref: "8ddf4c7d2298753a10404d8a3066e804b6cfd63e"
+# gem "activeuuid", github: "riboseinc/activeuuid", ref: "8ddf4c7d2298753a10404d8a3066e804b6cfd63e"
+gem "activeuuid", github: "riboseinc/activeuuid", branch: "pre_attribute_api"
 gem "rnp", github: "riboseinc/ruby-rnp"
 # gem "sqlite3", group: %i[development test]
 
