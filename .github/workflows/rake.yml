@@ -7,13 +7,13 @@ on:
   pull_request:
 
 env:
-  RNP_VERSION: master
+  RNP_VERSION: v0.15.0 # master
   DATABASE_URL: "mysql2://root@127.0.0.1/keyserver_test"
   DEPS_BUILD_DIR: ${{ github.workspace }}/build
   DEPS_PREFIX: ${{ github.workspace }}/opt
-  BOTAN_PREFIX: ${{ env.DEPS_PREFIX }}/botan
-  JSONC_PREFIX: ${{ env.DEPS_PREFIX }}/json-c
-  RNP_PREFIX: ${{ env.DEPS_PREFIX }}/rnp
+  BOTAN_PREFIX: ${{ github.workspace }}/opt/botan
+  JSONC_PREFIX: ${{ github.workspace }}/opt/json-c
+  RNP_PREFIX: ${{ github.workspace }}/opt/rnp
 
 jobs:
   rake:
@@ -31,12 +31,15 @@ jobs:
           - ruby: '2.5'
             rnp: v0.10.0
             os: ubuntu-latest
+            experimental: false
           - ruby: '2.5'
             rnp: v0.11.0
             os: ubuntu-latest
+            experimental: false
           - ruby: '2.5'
             rnp: v0.12.0
             os: ubuntu-latest
+            experimental: false
     steps:
       - uses: actions/checkout@v2
         with:
@@ -51,7 +54,7 @@ jobs:
         with:
           mysql-version: '8.0'
 
-      - run: mysql -e 'CREATE DATABASE keyserver_test;'
+      - run: mysql -uroot -h127.0.0.1 -e 'CREATE DATABASE keyserver_test;'
 
       - run: |
           mkdir -p ${DEPS_PREFIX}
