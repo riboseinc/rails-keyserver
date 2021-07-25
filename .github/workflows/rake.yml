@@ -56,14 +56,18 @@ jobs:
 
       - run: mysql -uroot -h127.0.0.1 -e 'CREATE DATABASE keyserver_test;'
 
-      - run: |
-          mkdir -p ${DEPS_PREFIX}
+      - run: mkdir -p ${DEPS_PREFIX}
 
       - working-directory: ci
-        run: |
-          ./install_botan.sh
-          ./install_json_c.sh
-          ./install_rnp.sh
+        run: ./install_botan.sh
+
+      - working-directory: ci
+        run: ./install_json_c.sh
+
+      - working-directory: ci
+        run: ./install_rnp.sh
+
+      - run: |
           # Be aware of differences between LD_LIBRARY_PATH and LD_RUN_PATH.
           # - http://osr507doc.sco.com/en/tools/ccs_linkedit_dynamic_dirsearch.html
           # - https://www.hpc.dtu.dk/?page_id=1180
