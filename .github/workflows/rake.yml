@@ -58,15 +58,6 @@ jobs:
 
       - run: mkdir -p ${DEPS_PREFIX}
 
-      - working-directory: ci
-        run: ./install_botan.sh
-
-      - working-directory: ci
-        run: ./install_json_c.sh
-
-      - working-directory: ci
-        run: ./install_rnp.sh
-
       - run: |
           # Be aware of differences between LD_LIBRARY_PATH and LD_RUN_PATH.
           # - http://osr507doc.sco.com/en/tools/ccs_linkedit_dynamic_dirsearch.html
@@ -82,6 +73,15 @@ jobs:
           # pull request.
           echo "LD_LIBRARY_PATH=${BOTAN_PREFIX}/lib:${JSONC_PREFIX}/lib:${RNP_PREFIX}/lib" >> $GITHUB_ENV
           echo "PATH=${RNP_PREFIX}/bin:${PATH}" >> $GITHUB_ENV
+
+      - working-directory: ci
+        run: ./install_botan.sh
+
+      - working-directory: ci
+        run: ./install_json_c.sh
+
+      - working-directory: ci
+        run: ./install_rnp.sh
 
       - run: bundle exec rake
 
