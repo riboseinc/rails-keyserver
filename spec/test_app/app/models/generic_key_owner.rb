@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class GenericKeyOwner < ActiveRecord::Base
-  include ActiveUUID::UUID
+  # include MySQLBinUUID::UUID
 
   # attr_accessor :type
   # def type

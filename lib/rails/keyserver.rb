@@ -2,7 +2,7 @@
 
 require "rails/keyserver/engine"
 require "rails/keyserver/routes"
-require "activeuuid"
+require "mysql-binuuid-rails"
 require "pp"
 require "active_model_serializers"
 require "gpgme"
