@@ -9,8 +9,14 @@ module Rails
         g.fixture_replacement :factory_bot, dir: "spec/factories"
       end
 
+      config.to_prepare do
+        # pp Rails::Keyserver::Engine.config.encryption_key
+      end
+
       config.after_initialize do
       end
+
+      config.autoload_paths << "#{config.root}/lib"
 
       # URL:
       # https://blog.pivotal.io/labs/labs/leave-your-migrations-in-your-rails-engines

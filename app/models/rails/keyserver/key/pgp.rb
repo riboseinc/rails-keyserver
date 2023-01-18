@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require File.expand_path("../key", __dir__)
+require File.expand_path("../application_record", __dir__)
+
 module Rails
   module Keyserver
     class Key
@@ -12,7 +15,7 @@ module Rails
         end
 
         # TODO: These defaults belong in somewhere else?
-        Engine.config.key_host = nil
+        ::Rails::Keyserver::Engine.config.key_host = nil
 
         def derive_metadata_if_empty
           derive_metadata if metadata.blank?

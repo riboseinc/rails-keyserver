@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
+require_dependency File.expand_path("application_record", __dir__)
+require_dependency File.expand_path("../../../../lib/rails/keyserver/engine", __dir__)
+
 module Rails
   module Keyserver
-    class Key < ApplicationRecord
+    class Key < ::Rails::Keyserver::ApplicationRecord
       class EncryptionKeyNotFoundException < RuntimeError; end
 
       include MySQLBinUUID::UUID
@@ -40,14 +43,14 @@ module Rails
       belongs_to :owner, polymorphic: true
 
       # XXX: key blankness should ideally be checked in attr_encrypted!
-      if Engine.config.encryption_key.blank?
+      if Rails::Keyserver::Engine.config.encryption_key.blank?
         raise EncryptionKeyNotFoundException,
-              "Engine.config.encryption_key is blank!"
+              "Rails::Keyserver::Engine.config.encryption_key is blank!"
       end
 
       attr_encrypted :private,
-                     key:  Engine.config.encryption_key,
-                     mode: Engine.config.try(:encryption_mode) || :per_attribute_iv
+                     key:  Rails::Keyserver::Engine.config.encryption_key,
+                     mode: Rails::Keyserver::Engine.config.try(:encryption_mode) || :per_attribute_iv
 
       scope :primary, -> {
         pkg = arel_table[:primary_key_grip]
@@ -87,3 +90,5 @@ module Rails
     end
   end
 end
+
+require File.expand_path("key/pgp", __dir__)
